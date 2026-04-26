@@ -62,6 +62,8 @@ const registerGameHandlers = (io, socket) => {
       status: 'playing',
       liarId,
       prompts: pair,
+      votes: {},       // { voterId: targetId }
+      hasVoted: [],    // [socketId]
     };
 
     // Emit role PRIVATELY to each player
@@ -81,6 +83,82 @@ const registerGameHandlers = (io, socket) => {
     const liarName = room.players[liarIndex].username;
     console.log(`🎮 Game started in room ${roomId} — Liar: ${liarName} | Truth: "${pair.truth}" / Lie: "${pair.lie}"`);
   });
+
+  // ── game:startVoting ──
+  socket.on('game:startVoting', ({ roomId }) => {
+    const room = rooms[roomId];
+    if (!room || !room.game) return;
+
+    // Only host can manually trigger for now
+    if (room.host !== socket.id) return;
+    if (room.game.status !== 'playing') return;
+
+    room.game.status = 'voting';
+    room.game.votes = {};
+    room.game.hasVoted = [];
+
+    io.to(roomId).emit('game:phase', 'voting');
+    console.log(`🗳️ Voting started in room ${roomId}`);
+  });
+
+  // ── vote:submit ──
+  socket.on('vote:submit', ({ roomId, targetId }) => {
+    const room = rooms[roomId];
+    if (!room || !room.game) return;
+    if (room.game.status !== 'voting') return;
+
+    // Cannot vote for self
+    if (socket.id === targetId) return;
+
+    // Ignore if already voted
+    if (room.game.hasVoted.includes(socket.id)) return;
+
+    // Save vote
+    room.game.votes[socket.id] = targetId;
+    room.game.hasVoted.push(socket.id);
+
+    // Emit update
+    io.to(roomId).emit('vote:update', {
+      totalVotes: room.game.hasVoted.length,
+      totalPlayers: room.players.length,
+    });
+
+    // Check if everyone voted
+    if (room.game.hasVoted.length === room.players.length) {
+      endVoting(io, roomId, room);
+    }
+  });
+};
+
+const endVoting = (io, roomId, room) => {
+  room.game.status = 'result';
+
+  // Count votes
+  const voteCounts = {};
+  Object.values(room.game.votes).forEach((targetId) => {
+    voteCounts[targetId] = (voteCounts[targetId] || 0) + 1;
+  });
+
+  // Find most voted player
+  let mostVotedId = null;
+  let maxVotes = 0;
+  Object.entries(voteCounts).forEach(([targetId, count]) => {
+    if (count > maxVotes) {
+      maxVotes = count;
+      mostVotedId = targetId;
+    }
+  });
+
+  const isLiarCaught = mostVotedId === room.game.liarId;
+
+  io.to(roomId).emit('vote:result', {
+    votedPlayerId: mostVotedId,
+    liarId: room.game.liarId,
+    isLiarCaught,
+    voteBreakdown: room.game.votes,
+  });
+
+  console.log(`🏁 Voting ended in room ${roomId} - Liar Caught? ${isLiarCaught}`);
 };
 
 module.exports = { registerGameHandlers };

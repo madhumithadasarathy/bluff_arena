@@ -7,10 +7,15 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
   const messagesEndRef = useRef(null);
 
   // ── Game state ──
-  const [gameActive, setGameActive] = useState(false);
+  const [gamePhase, setGamePhase] = useState('waiting'); // 'waiting' | 'playing' | 'voting' | 'result'
   const [role, setRole] = useState(null);       // "liar" | "truth"
   const [prompt, setPrompt] = useState(null);
   const [error, setError] = useState('');
+  
+  // ── Voting state ──
+  const [votedFor, setVotedFor] = useState(null);
+  const [voteUpdate, setVoteUpdate] = useState(null);
+  const [voteResult, setVoteResult] = useState(null);
 
   const isHost = socket.id === host;
 
@@ -21,7 +26,10 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
     }
 
     function onGameStarted() {
-      setGameActive(true);
+      setGamePhase('playing');
+      setVotedFor(null);
+      setVoteUpdate(null);
+      setVoteResult(null);
     }
 
     function onGameRole({ role, prompt }) {
@@ -34,16 +42,35 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
       setTimeout(() => setError(''), 3000);
     }
 
+    function onGamePhase(phase) {
+      setGamePhase(phase);
+    }
+
+    function onVoteUpdate(data) {
+      setVoteUpdate(data);
+    }
+
+    function onVoteResult(data) {
+      setGamePhase('result');
+      setVoteResult(data);
+    }
+
     socket.on('chat:message', onChatMessage);
     socket.on('game:started', onGameStarted);
     socket.on('game:role', onGameRole);
     socket.on('room:error', onRoomError);
+    socket.on('game:phase', onGamePhase);
+    socket.on('vote:update', onVoteUpdate);
+    socket.on('vote:result', onVoteResult);
 
     return () => {
       socket.off('chat:message', onChatMessage);
       socket.off('game:started', onGameStarted);
       socket.off('game:role', onGameRole);
       socket.off('room:error', onRoomError);
+      socket.off('game:phase', onGamePhase);
+      socket.off('vote:update', onVoteUpdate);
+      socket.off('vote:result', onVoteResult);
     };
   }, []);
 
@@ -78,6 +105,16 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
     socket.emit('game:start', { roomId });
   };
 
+  const startVoting = () => {
+    socket.emit('game:startVoting', { roomId });
+  };
+
+  const submitVote = (targetId) => {
+    if (votedFor) return;
+    setVotedFor(targetId);
+    socket.emit('vote:submit', { roomId, targetId });
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden py-8 px-4">
       {/* Background Gradient Orbs */}
@@ -109,8 +146,8 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
           </div>
         </div>
 
-        {/* ── Role Card (only when game is active) ── */}
-        {gameActive && role && (
+        {/* ── Role Card (Playing Phase) ── */}
+        {gamePhase === 'playing' && role && (
           <div className="mb-5 animate-fade-in-up">
             <div
               className="glass p-5 text-center"
@@ -160,6 +197,100 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
                   Discuss carefully — find the liar!
                 </p>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Voting UI (Voting Phase) ── */}
+        {gamePhase === 'voting' && (
+          <div className="mb-5 animate-fade-in-up">
+            <div className="glass p-5 text-center" style={{ borderColor: 'rgba(108, 92, 231, 0.4)' }}>
+              <h3 className="text-xl font-bold mb-2 gradient-text" style={{ fontFamily: 'var(--font-heading)' }}>
+                Who is the Liar?
+              </h3>
+              <p className="text-sm mb-4" style={{ color: 'var(--clr-text-muted)' }}>
+                {voteUpdate 
+                  ? `${voteUpdate.totalVotes} / ${voteUpdate.totalPlayers} voted` 
+                  : 'Cast your vote!'}
+              </p>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {players.map(p => {
+                  const isSelf = p.id === socket.id;
+                  const isSelected = votedFor === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => submitVote(p.id)}
+                      disabled={isSelf || votedFor}
+                      className={`p-3 rounded-xl transition-all duration-200 border
+                        ${isSelected ? 'scale-105 shadow-lg' : 'hover:scale-105 active:scale-95'}
+                        ${(isSelf || votedFor && !isSelected) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                      `}
+                      style={{
+                        background: isSelected 
+                          ? 'rgba(108, 92, 231, 0.2)' 
+                          : 'rgba(255, 255, 255, 0.03)',
+                        borderColor: isSelected 
+                          ? 'var(--clr-primary-glow)' 
+                          : 'rgba(255, 255, 255, 0.1)',
+                      }}
+                    >
+                      <div className="font-semibold text-sm truncate">{p.username}</div>
+                      {isSelf && <div className="text-[10px]" style={{ color: 'var(--clr-text-muted)' }}>(You)</div>}
+                      {isSelected && <div className="text-[10px] mt-1 text-green-400 font-bold">VOTED</div>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Result UI (Result Phase) ── */}
+        {gamePhase === 'result' && voteResult && (
+          <div className="mb-5 animate-fade-in-up">
+            <div className="glass p-6 text-center" style={{ 
+              borderColor: voteResult.isLiarCaught ? 'var(--clr-success)' : 'var(--clr-accent)',
+            }}>
+              <h3 className="text-3xl font-black mb-1" style={{ 
+                fontFamily: 'var(--font-heading)',
+                color: voteResult.isLiarCaught ? 'var(--clr-success)' : 'var(--clr-accent-glow)'
+              }}>
+                {voteResult.isLiarCaught ? 'Liar Caught!' : 'Liar Escaped!'}
+              </h3>
+              
+              <div className="my-4 p-4 rounded-xl" style={{ background: 'rgba(0,0,0,0.2)' }}>
+                <p className="text-sm" style={{ color: 'var(--clr-text-muted)' }}>The liar was</p>
+                <p className="text-2xl font-bold mt-1">
+                  {players.find(p => p.id === voteResult.liarId)?.username || 'Unknown'}
+                </p>
+                
+                {voteResult.votedPlayerId && voteResult.votedPlayerId !== voteResult.liarId && (
+                  <p className="text-sm mt-3 text-gray-400">
+                    Most voted: {players.find(p => p.id === voteResult.votedPlayerId)?.username}
+                  </p>
+                )}
+              </div>
+
+              <div className="text-left mt-4">
+                <p className="text-xs uppercase tracking-wider mb-2" style={{ color: 'var(--clr-text-muted)' }}>Vote Breakdown</p>
+                <div className="space-y-1 text-sm">
+                  {Object.entries(voteResult.voteBreakdown).map(([voterId, targetId]) => {
+                    const voter = players.find(p => p.id === voterId)?.username || 'Unknown';
+                    const target = players.find(p => p.id === targetId)?.username || 'Unknown';
+                    return (
+                      <div key={voterId} className="flex justify-between border-b border-gray-800 pb-1">
+                        <span className="text-gray-300">{voter}</span>
+                        <span className="text-gray-500">→</span>
+                        <span className={targetId === voteResult.liarId ? 'text-green-400 font-medium' : 'text-red-400 font-medium'}>
+                          {target}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -215,8 +346,8 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
               ))}
             </ul>
 
-            {/* Start Game (host only, lobby only) */}
-            {isHost && !gameActive && (
+            {/* Start Game (host only, waiting or result phase) */}
+            {isHost && (gamePhase === 'waiting' || gamePhase === 'result') && (
               <button
                 id="btn-start-game"
                 onClick={startGame}
@@ -225,7 +356,21 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
                            hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
                 style={{ background: 'linear-gradient(135deg, var(--clr-primary), var(--clr-accent))' }}
               >
-                🎮 Start Game
+                🎮 {gamePhase === 'result' ? 'Play Again' : 'Start Game'}
+              </button>
+            )}
+
+            {/* Start Voting (host only, playing phase) */}
+            {isHost && gamePhase === 'playing' && (
+              <button
+                id="btn-start-voting"
+                onClick={startVoting}
+                className="w-full mt-4 px-4 py-2.5 rounded-xl font-semibold text-sm text-white
+                           transition-all duration-300 cursor-pointer
+                           hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
+                style={{ background: 'linear-gradient(135deg, var(--clr-success), var(--clr-primary))' }}
+              >
+                🗳️ Start Voting
               </button>
             )}
 
@@ -236,8 +381,8 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
               </p>
             )}
 
-            {/* Waiting for host (non-host, lobby only) */}
-            {!isHost && !gameActive && (
+            {/* Waiting for host (non-host, not playing/voting) */}
+            {!isHost && (gamePhase === 'waiting' || gamePhase === 'result') && (
               <p className="text-xs text-center mt-4 py-2" style={{ color: 'var(--clr-text-muted)' }}>
                 Waiting for host to start...
               </p>
@@ -247,7 +392,7 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
             <button
               onClick={onLeave}
               className={`w-full px-4 py-2 rounded-xl font-medium text-xs transition-all duration-200
-                         hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${gameActive || (!isHost) ? 'mt-4' : 'mt-2'}`}
+                         hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${gamePhase !== 'waiting' || (!isHost) ? 'mt-4' : 'mt-2'}`}
               style={{
                 background: 'rgba(214, 48, 49, 0.1)',
                 border: '1px solid rgba(214, 48, 49, 0.25)',
