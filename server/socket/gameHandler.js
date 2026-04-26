@@ -200,6 +200,17 @@ const endVoting = (io, roomId, room) => {
 
   const isLiarCaught = mostVotedId === room.game.liarId;
 
+  // ── Update Scores ──
+  if (isLiarCaught) {
+    room.players.forEach(p => {
+      if (p.id !== room.game.liarId) p.score += 1;
+    });
+  } else {
+    const liar = room.players.find(p => p.id === room.game.liarId);
+    if (liar) liar.score += 2;
+  }
+
+  // ── Emit Results ──
   io.to(roomId).emit('vote:result', {
     votedPlayerId: mostVotedId,
     liarId: room.game.liarId,
@@ -207,7 +218,23 @@ const endVoting = (io, roomId, room) => {
     voteBreakdown: room.game.votes,
   });
 
+  // ── Emit Scoreboard ──
+  io.to(roomId).emit('game:scoreboard', {
+    players: room.players.map(p => ({ id: p.id, username: p.username, score: p.score }))
+  });
+
   console.log(`🏁 Voting ended in room ${roomId} - Liar Caught? ${isLiarCaught}`);
+
+  // ── Reset Round State ──
+  room.game = {
+    status: 'waiting',
+    liarId: null,
+    prompts: null,
+    votes: {},
+    hasVoted: [],
+    timer: 0,
+    timerInterval: null
+  };
 };
 
 module.exports = { registerGameHandlers };

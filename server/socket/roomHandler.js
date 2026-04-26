@@ -72,7 +72,7 @@ const registerRoomHandlers = (io, socket) => {
 
     rooms[roomId] = {
       host: socket.id,
-      players: [{ id: socket.id, username }],
+      players: [{ id: socket.id, username, score: 0 }],
     };
 
     socket.join(roomId);
@@ -102,7 +102,7 @@ const registerRoomHandlers = (io, socket) => {
       return;
     }
 
-    room.players.push({ id: socket.id, username });
+    room.players.push({ id: socket.id, username, score: 0 });
     socket.join(roomId);
 
     io.to(roomId).emit('room:players', {

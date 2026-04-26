@@ -40,11 +40,16 @@ export default function Home() {
       setError(message);
     }
 
+    function onGameScoreboard({ players }) {
+      setPlayers(players);
+    }
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('room:created', onRoomCreated);
     socket.on('room:players', onRoomPlayers);
     socket.on('room:error', onRoomError);
+    socket.on('game:scoreboard', onGameScoreboard);
 
     return () => {
       socket.off('connect', onConnect);
@@ -52,6 +57,7 @@ export default function Home() {
       socket.off('room:created', onRoomCreated);
       socket.off('room:players', onRoomPlayers);
       socket.off('room:error', onRoomError);
+      socket.off('game:scoreboard', onGameScoreboard);
     };
   }, []);
 

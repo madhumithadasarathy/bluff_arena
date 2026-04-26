@@ -319,6 +319,22 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
                 </div>
               </div>
             </div>
+            
+            {/* Scoreboard Section */}
+            <div className="text-left mt-6 pt-4 border-t border-gray-800">
+              <p className="text-xs uppercase tracking-wider mb-3" style={{ color: 'var(--clr-primary-glow)' }}>🏆 Scoreboard</p>
+              <div className="space-y-2">
+                {[...players].sort((a, b) => b.score - a.score).map((p, index) => (
+                  <div key={p.id} className="flex justify-between items-center p-2 rounded-lg" style={{ background: index === 0 ? 'rgba(0, 206, 201, 0.1)' : 'rgba(255, 255, 255, 0.05)' }}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : ''}</span>
+                      <span className={index === 0 ? 'font-bold text-[var(--clr-success)]' : 'text-gray-300'}>{p.username}</span>
+                    </div>
+                    <span className="font-black text-lg">{p.score} <span className="text-xs text-gray-500 font-normal">pts</span></span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
@@ -369,6 +385,14 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
                       👑
                     </span>
                   )}
+                  
+                  {/* Score */}
+                  <div className="ml-auto">
+                    <span className="text-xs font-bold px-2 py-1 rounded-md"
+                          style={{ background: 'rgba(255,255,255,0.1)', color: 'var(--clr-primary-glow)' }}>
+                      {player.score || 0} pts
+                    </span>
+                  </div>
                 </li>
               ))}
             </ul>
