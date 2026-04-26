@@ -44,7 +44,7 @@ bluff-arena/
 ### 1. Clone the repository
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/madhumithadasarathy/bluff_arena.git
 cd bluff-arena
 ```
 
