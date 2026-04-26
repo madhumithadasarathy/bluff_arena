@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import socket from '../socket';
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import confetti from 'canvas-confetti';
+import { sounds } from '../utils/soundManager';
 
 const getAvatarColor = (name) => {
   const colors = [
@@ -75,7 +76,10 @@ function FlipCard({ role, prompt }) {
   const [isFlipped, setIsFlipped] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => setIsFlipped(true), 600);
+    const t = setTimeout(() => {
+      setIsFlipped(true);
+      sounds.playFlip();
+    }, 600);
     return () => clearTimeout(t);
   }, []);
 
@@ -162,7 +166,21 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
   const [voteResult, setVoteResult] = useState(null);
   const [timeLeft, setTimeLeft] = useState(null);
 
+  // ── Mute state ──
+  const [isMuted, setIsMuted] = useState(sounds.muted);
+
+  const toggleMute = () => {
+    setIsMuted(sounds.toggleMute());
+  };
+
   const isHost = socket.id === host;
+
+  // ── Timer Sound ──
+  useEffect(() => {
+    if (timeLeft !== null && timeLeft > 0 && timeLeft <= 10) {
+      sounds.playTick();
+    }
+  }, [timeLeft]);
 
   // ── Socket listeners ──
   useEffect(() => {
@@ -200,6 +218,7 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
       setGamePhase('result');
       setVoteResult(data);
       setTimeLeft(null);
+      sounds.playReveal(data.isLiarCaught);
     }
 
     function onGameTimer({ timeLeft }) {
@@ -276,12 +295,23 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
 
   const submitVote = (targetId) => {
     if (votedFor) return;
+    sounds.playClick();
     setVotedFor(targetId);
     socket.emit('vote:submit', { roomId, targetId });
   };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden py-8 px-4">
+      
+      {/* Mute Toggle */}
+      <button 
+        onClick={toggleMute}
+        className="absolute top-4 right-4 z-50 p-3 rounded-full glass transition-transform hover:scale-110 active:scale-95"
+        title={isMuted ? "Unmute sounds" : "Mute sounds"}
+      >
+        <span className="text-xl">{isMuted ? '🔇' : '🔊'}</span>
+      </button>
+
       {/* Background Gradient Orbs */}
       <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full opacity-20 blur-[120px]"
            style={{ background: 'radial-gradient(circle, var(--clr-primary) 0%, transparent 70%)' }} />
