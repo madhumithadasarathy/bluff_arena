@@ -71,6 +71,80 @@ function TiltCard({ children, isSelected, disabled, onClick, dimOthers }) {
   );
 }
 
+function FlipCard({ role, prompt }) {
+  const [isFlipped, setIsFlipped] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setIsFlipped(true), 600);
+    return () => clearTimeout(t);
+  }, []);
+
+  const isLiar = role === 'liar';
+
+  return (
+    <motion.div 
+      key="playing"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95, y: -20 }}
+      transition={{ duration: 0.3 }}
+      className="mb-8 w-full max-w-sm mx-auto h-[320px] md:h-[360px]" 
+      style={{ perspective: 1200 }}
+    >
+      <motion.div
+        className="w-full h-full relative"
+        initial={{ rotateY: 180 }}
+        animate={{ rotateY: isFlipped ? 0 : 180 }}
+        transition={{ duration: 0.6, ease: "easeInOut" }}
+        style={{ transformStyle: "preserve-3d" }}
+      >
+        {/* Front of the Card (Face up) */}
+        <div
+          className="absolute inset-0 w-full h-full rounded-2xl p-6 flex flex-col items-center justify-center text-center shadow-[0_15px_40px_rgba(0,0,0,0.5)]"
+          style={{
+            backfaceVisibility: "hidden",
+            background: 'var(--clr-card-bg)',
+            border: `2px solid ${isLiar ? '#8b0000' : '#d4af37'}`,
+            color: 'var(--clr-card-text)'
+          }}
+        >
+          <div className="mb-4">
+            <span className="text-4xl drop-shadow-md">{isLiar ? '🤥' : '🎭'}</span>
+          </div>
+          <h3 className="text-xl uppercase tracking-widest font-bold mb-1"
+              style={{ color: isLiar ? '#8b0000' : '#aa8623', fontFamily: 'var(--font-heading)' }}>
+            {isLiar ? 'You are the Liar' : 'You have the Truth'}
+          </h3>
+          <p className="text-sm font-medium opacity-70 mb-6 uppercase tracking-wider">Your Prompt</p>
+          <p className="text-4xl md:text-5xl font-black drop-shadow-sm" style={{ fontFamily: 'var(--font-heading)' }}>
+            {prompt}
+          </p>
+          <p className="text-xs mt-8 opacity-70 font-medium">
+            {isLiar ? 'Blend in! Others have a different word.' : 'Discuss carefully — find the liar!'}
+          </p>
+        </div>
+
+        {/* Back of the Card (Face down) */}
+        <div
+          className="absolute inset-0 w-full h-full rounded-2xl p-3 shadow-[0_15px_40px_rgba(0,0,0,0.5)]"
+          style={{
+            backfaceVisibility: "hidden",
+            transform: "rotateY(180deg)",
+            background: 'var(--clr-surface)',
+            border: '2px solid rgba(212, 175, 55, 0.5)',
+          }}
+        >
+          <div className="w-full h-full rounded-xl border border-dashed border-[#d4af37]/30 flex flex-col items-center justify-center relative overflow-hidden" style={{ background: 'var(--clr-surface-light)' }}>
+            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#d4af37 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
+            <div className="text-6xl drop-shadow-md mb-2">🃏</div>
+            <div className="font-black tracking-[0.3em] uppercase text-xs" style={{ color: 'var(--clr-primary)', fontFamily: 'var(--font-heading)' }}>Bluff Arena</div>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export default function Lobby({ roomId, players, host, username, onLeave }) {
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState('');
@@ -258,64 +332,7 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
         <AnimatePresence mode="wait">
           {/* ── Role Card (Playing Phase) ── */}
           {gamePhase === 'playing' && role && (
-            <motion.div 
-              key="playing"
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -10 }}
-              transition={{ duration: 0.3 }}
-              className="mb-5"
-            >
-              <div
-                className="glass p-5 text-center"
-                style={{
-                  borderColor: role === 'liar'
-                    ? 'rgba(139, 0, 0, 0.4)'
-                    : 'rgba(212, 175, 55, 0.4)',
-                }}
-              >
-                {/* Role Badge */}
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-3"
-                     style={{
-                       background: role === 'liar'
-                         ? 'rgba(139, 0, 0, 0.15)'
-                         : 'rgba(212, 175, 55, 0.15)',
-                       border: `1px solid ${role === 'liar' ? 'rgba(139, 0, 0, 0.3)' : 'rgba(212, 175, 55, 0.3)'}`,
-                     }}>
-                  <span className="text-lg">{role === 'liar' ? '🤥' : '✅'}</span>
-                  <span className="text-sm font-bold tracking-wider uppercase"
-                        style={{ color: role === 'liar' ? 'var(--clr-accent-glow)' : 'var(--clr-success)' }}>
-                    {role === 'liar' ? 'You are the Liar' : 'You have the Truth'}
-                  </span>
-                </div>
-
-                {/* Prompt */}
-                <p className="text-xs mb-2" style={{ color: 'var(--clr-text-muted)' }}>Your prompt</p>
-                <p className="text-3xl font-black"
-                   style={{
-                     fontFamily: 'var(--font-heading)',
-                     background: role === 'liar'
-                       ? 'linear-gradient(135deg, var(--clr-accent), var(--clr-accent-glow))'
-                       : 'linear-gradient(135deg, var(--clr-success), var(--clr-primary-glow))',
-                     WebkitBackgroundClip: 'text',
-                     WebkitTextFillColor: 'transparent',
-                     backgroundClip: 'text',
-                   }}>
-                  {prompt}
-                </p>
-
-                {role === 'liar' && (
-                  <p className="text-xs mt-3" style={{ color: 'var(--clr-text-muted)' }}>
-                    Blend in! Others have a different word.
-                  </p>
-                )}
-                {role === 'truth' && (
-                  <p className="text-xs mt-3" style={{ color: 'var(--clr-text-muted)' }}>
-                    Discuss carefully — find the liar!
-                  </p>
-                )}
-              </div>
-            </motion.div>
+            <FlipCard role={role} prompt={prompt} />
           )}
 
           {/* ── Voting UI (Voting Phase) ── */}
