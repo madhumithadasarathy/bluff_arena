@@ -4,7 +4,7 @@ import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from
 import confetti from 'canvas-confetti';
 import { sounds } from '../utils/soundManager';
 import { Box, Grid, Stack, TextField, Button, Typography, Paper } from '@mui/material';
-import InstructionsModal from './InstructionsModal';
+import InstructionsModal from '../components/InstructionsModal';
 
 const getAvatarColor = (name) => {
   const colors = [
