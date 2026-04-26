@@ -73,6 +73,11 @@ function TiltCard({ children, isSelected, disabled, onClick, dimOthers }) {
       onClick={onClick}
       disabled={disabled}
       whileTap={!disabled ? { scale: 0.95 } : {}}
+      animate={isSelected ? { 
+        scale: [1, 1.05, 1], 
+        boxShadow: ['0px 8px 30px rgba(212,175,55,0.4)', '0px 0px 40px rgba(212,175,55,1)', '0px 8px 30px rgba(212,175,55,0.4)'] 
+      } : {}}
+      transition={isSelected ? { duration: 0.4 } : {}}
       className={`relative p-5 rounded-xl transition-all duration-300 border flex flex-col items-center justify-center
         ${isSelected ? 'shadow-[0_8px_30px_rgba(212,175,55,0.4)] -translate-y-2' : ''}
         ${dimOthers ? 'opacity-40 grayscale-[50%]' : 'opacity-100'}
@@ -337,10 +342,14 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
         {/* Timer UI */}
         {timeLeft !== null && gamePhase !== 'waiting' && gamePhase !== 'result' && (
           <div className="flex justify-center mb-6">
-            <div 
+            <motion.div 
+              animate={timeLeft <= 5 ? { scale: [1, 1.15, 1], boxShadow: ['0 0 10px rgba(220,38,38,0.5)', '0 0 30px rgba(220,38,38,1)', '0 0 10px rgba(220,38,38,0.5)'] } : {}}
+              transition={{ repeat: timeLeft <= 5 ? Infinity : 0, duration: 1 }}
               className={`flex flex-col items-center justify-center w-20 h-20 rounded-full border-4 shadow-lg transition-colors duration-300 ${
-                timeLeft <= 10 
-                  ? 'border-red-500 shadow-red-500/50 animate-pulse text-red-500' 
+                timeLeft <= 5 
+                  ? 'border-red-600 text-red-500' 
+                  : timeLeft <= 10
+                  ? 'border-yellow-500 shadow-yellow-500/50 text-yellow-500'
                   : 'border-[var(--clr-primary)] shadow-[var(--clr-primary-glow)] text-white'
               }`}
               style={{ background: 'rgba(0, 0, 0, 0.4)' }}
@@ -348,7 +357,7 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
               <span className="text-3xl font-black" style={{ fontFamily: 'var(--font-heading)' }}>
                 {timeLeft}
               </span>
-            </div>
+            </motion.div>
           </div>
         )}
 
@@ -437,9 +446,20 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -10 }}
               transition={{ duration: 0.3 }}
-              className="mb-5"
+              className="mb-5 relative z-50"
             >
-              <div className="glass p-6 text-center" style={{ 
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                style={{
+                  position: 'fixed',
+                  top: 0, left: 0, right: 0, bottom: 0,
+                  background: 'radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.85) 70%)',
+                  zIndex: -1,
+                  pointerEvents: 'none'
+                }}
+              />
+              <div className="glass p-6 text-center shadow-[0_0_50px_rgba(0,0,0,0.8)]" style={{ 
                 borderColor: voteResult.isLiarCaught ? 'var(--clr-success)' : 'var(--clr-accent)',
               }}>
                 <h3 className="text-3xl font-black mb-1" style={{ 
@@ -573,52 +593,54 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
 
             {/* Start Game (host only, waiting or result phase) */}
             {isHost && (gamePhase === 'waiting' || gamePhase === 'result') && (
-              <Button
-                variant="contained"
-                id="btn-start-game"
-                onClick={startGame}
-                fullWidth
-                sx={{
-                  mt: 2,
-                  py: 1.5,
-                  borderRadius: 3,
-                  fontWeight: 'bold',
-                  background: 'linear-gradient(135deg, var(--clr-primary), var(--clr-accent))',
-                  boxShadow: '0 0 15px rgba(212,175,55,0.4)',
-                  color: 'white',
-                  '&:hover': {
-                    transform: 'scale(1.02)',
-                    boxShadow: '0 0 25px rgba(212,175,55,0.6)',
-                  }
-                }}
-              >
-                🎮 {gamePhase === 'result' ? 'Play Again' : 'Start Game'}
-              </Button>
+              <motion.div whileTap={{ scale: 0.95 }}>
+                <Button
+                  variant="contained"
+                  id="btn-start-game"
+                  onClick={startGame}
+                  fullWidth
+                  sx={{
+                    mt: 2,
+                    py: 1.5,
+                    borderRadius: 3,
+                    fontWeight: 'bold',
+                    background: 'linear-gradient(135deg, var(--clr-primary), var(--clr-accent))',
+                    boxShadow: '0 0 15px rgba(212,175,55,0.4)',
+                    color: 'white',
+                    '&:hover': {
+                      boxShadow: '0 0 25px rgba(212,175,55,0.6)',
+                    }
+                  }}
+                >
+                  🎮 {gamePhase === 'result' ? 'Play Again' : 'Start Game'}
+                </Button>
+              </motion.div>
             )}
 
             {/* Start Voting (host only, playing phase) */}
             {isHost && gamePhase === 'playing' && (
-              <Button
-                variant="contained"
-                id="btn-start-voting"
-                onClick={startVoting}
-                fullWidth
-                sx={{
-                  mt: 2,
-                  py: 1.5,
-                  borderRadius: 3,
-                  fontWeight: 'bold',
-                  background: 'linear-gradient(135deg, var(--clr-success), var(--clr-primary))',
-                  boxShadow: '0 0 15px rgba(212,175,55,0.4)',
-                  color: 'white',
-                  '&:hover': {
-                    transform: 'scale(1.02)',
-                    boxShadow: '0 0 25px rgba(212,175,55,0.6)',
-                  }
-                }}
-              >
-                🗳️ Start Voting
-              </Button>
+              <motion.div whileTap={{ scale: 0.95 }}>
+                <Button
+                  variant="contained"
+                  id="btn-start-voting"
+                  onClick={startVoting}
+                  fullWidth
+                  sx={{
+                    mt: 2,
+                    py: 1.5,
+                    borderRadius: 3,
+                    fontWeight: 'bold',
+                    background: 'linear-gradient(135deg, var(--clr-success), var(--clr-primary))',
+                    boxShadow: '0 0 15px rgba(212,175,55,0.4)',
+                    color: 'white',
+                    '&:hover': {
+                      boxShadow: '0 0 25px rgba(212,175,55,0.6)',
+                    }
+                  }}
+                >
+                  🗳️ Start Voting
+                </Button>
+              </motion.div>
             )}
 
             {/* Error message */}
@@ -636,28 +658,29 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
             )}
 
             {/* Leave Room */}
-            <Button
-              onClick={onLeave}
-              variant="outlined"
-              fullWidth
-              sx={{
-                mt: gamePhase !== 'waiting' || !isHost ? 2 : 1,
-                py: 1,
-                borderRadius: 3,
-                fontWeight: 'medium',
-                fontSize: '0.75rem',
-                color: '#ff7675',
-                borderColor: 'rgba(139, 0, 0, 0.25)',
-                background: 'rgba(139, 0, 0, 0.1)',
-                '&:hover': {
-                  background: 'rgba(139, 0, 0, 0.2)',
-                  borderColor: 'rgba(139, 0, 0, 0.4)',
-                  transform: 'scale(1.02)'
-                }
-              }}
-            >
-              Leave Room
-            </Button>
+            <motion.div whileTap={{ scale: 0.95 }}>
+              <Button
+                onClick={onLeave}
+                variant="outlined"
+                fullWidth
+                sx={{
+                  mt: gamePhase !== 'waiting' || !isHost ? 2 : 1,
+                  py: 1,
+                  borderRadius: 3,
+                  fontWeight: 'medium',
+                  fontSize: '0.75rem',
+                  color: '#ff7675',
+                  borderColor: 'rgba(139, 0, 0, 0.25)',
+                  background: 'rgba(139, 0, 0, 0.1)',
+                  '&:hover': {
+                    background: 'rgba(139, 0, 0, 0.2)',
+                    borderColor: 'rgba(139, 0, 0, 0.4)',
+                  }
+                }}
+              >
+                Leave Room
+              </Button>
+            </motion.div>
           </div>
 
           {/* ── Chat Card (3 cols) ── */}
@@ -682,8 +705,14 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
                 const isLatest = i === messages.length - 1;
                 return (
                   <motion.div 
-                    initial={{ opacity: 0, x: isMe ? 20 : -20 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    initial={{ opacity: 0, scale: 0.9, x: isMe ? 20 : -20 }}
+                    animate={{ 
+                      opacity: 1, 
+                      scale: 1, 
+                      x: 0,
+                      boxShadow: isLatest && !isMe ? ['0 0 0px rgba(212,175,55,0)', '0 0 15px rgba(212,175,55,0.6)', '0 0 0px rgba(212,175,55,0)'] : 'none'
+                    }}
+                    transition={{ duration: 0.4 }}
                     key={i} 
                     className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
                   >
@@ -742,28 +771,28 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
                   }
                 }}
               />
-              <Button
-                id="btn-send-chat"
-                variant="contained"
-                onClick={sendMessage}
-                disabled={!draft.trim()}
-                sx={{
-                  borderRadius: 3,
-                  px: 3,
-                  fontWeight: 'bold',
-                  background: 'linear-gradient(135deg, var(--clr-primary), var(--clr-accent))',
-                  color: 'white',
-                  '&:hover': {
-                    transform: 'scale(1.05)',
-                  },
-                  '&:disabled': {
-                    opacity: 0.3,
-                    color: 'white'
-                  }
-                }}
-              >
-                Send
-              </Button>
+              <motion.div whileTap={draft.trim() ? { scale: 0.95 } : {}}>
+                <Button
+                  id="btn-send-chat"
+                  variant="contained"
+                  onClick={sendMessage}
+                  disabled={!draft.trim()}
+                  sx={{
+                    borderRadius: 3,
+                    px: 3,
+                    height: '100%',
+                    fontWeight: 'bold',
+                    background: 'linear-gradient(135deg, var(--clr-primary), var(--clr-accent))',
+                    color: 'white',
+                    '&:disabled': {
+                      opacity: 0.3,
+                      color: 'white'
+                    }
+                  }}
+                >
+                  Send
+                </Button>
+              </motion.div>
             </Stack>
           </div>
         </div>
