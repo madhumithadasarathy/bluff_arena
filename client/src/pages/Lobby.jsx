@@ -10,6 +10,7 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
   const [gameActive, setGameActive] = useState(false);
   const [role, setRole] = useState(null);       // "liar" | "truth"
   const [prompt, setPrompt] = useState(null);
+  const [error, setError] = useState('');
 
   const isHost = socket.id === host;
 
@@ -28,14 +29,21 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
       setPrompt(prompt);
     }
 
+    function onRoomError({ message }) {
+      setError(message);
+      setTimeout(() => setError(''), 3000);
+    }
+
     socket.on('chat:message', onChatMessage);
     socket.on('game:started', onGameStarted);
     socket.on('game:role', onGameRole);
+    socket.on('room:error', onRoomError);
 
     return () => {
       socket.off('chat:message', onChatMessage);
       socket.off('game:started', onGameStarted);
       socket.off('game:role', onGameRole);
+      socket.off('room:error', onRoomError);
     };
   }, []);
 
@@ -219,6 +227,13 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
               >
                 🎮 Start Game
               </button>
+            )}
+
+            {/* Error message */}
+            {error && (
+              <p className="text-xs text-center mt-2 px-1" style={{ color: '#ff7675' }}>
+                {error}
+              </p>
             )}
 
             {/* Waiting for host (non-host, lobby only) */}
