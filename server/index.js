@@ -6,6 +6,7 @@ const cors = require('cors');
 const { Server } = require('socket.io');
 const { connectDB, getDBStatus } = require('./config/db');
 const healthRoutes = require('./routes/health');
+const { registerRoomHandlers } = require('./socket/roomHandler');
 
 // ── App & Server ──
 const app = express();
@@ -31,6 +32,9 @@ const io = new Server(server, {
 
 io.on('connection', (socket) => {
   console.log(`🟢 Client connected:    ${socket.id}`);
+
+  // Register room events for this socket
+  registerRoomHandlers(io, socket);
 
   socket.on('disconnect', (reason) => {
     console.log(`🔴 Client disconnected: ${socket.id} — ${reason}`);

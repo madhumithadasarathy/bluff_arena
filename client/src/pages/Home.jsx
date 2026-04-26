@@ -1,8 +1,17 @@
 import { useEffect, useState } from 'react';
 import socket from '../socket';
+import Lobby from './Lobby';
 
 export default function Home() {
   const [isConnected, setIsConnected] = useState(socket.connected);
+
+  // Room state
+  const [username, setUsername] = useState('');
+  const [joinCode, setJoinCode] = useState('');
+  const [roomId, setRoomId] = useState(null);
+  const [players, setPlayers] = useState([]);
+  const [host, setHost] = useState(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     function onConnect() {
@@ -15,15 +24,71 @@ export default function Home() {
       console.log('❌ Disconnected from server');
     }
 
+    function onRoomCreated({ roomId }) {
+      setRoomId(roomId);
+      setError('');
+    }
+
+    function onRoomPlayers({ roomId, host, players }) {
+      setRoomId(roomId);
+      setHost(host);
+      setPlayers(players);
+      setError('');
+    }
+
+    function onRoomError({ message }) {
+      setError(message);
+    }
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
+    socket.on('room:created', onRoomCreated);
+    socket.on('room:players', onRoomPlayers);
+    socket.on('room:error', onRoomError);
 
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
+      socket.off('room:created', onRoomCreated);
+      socket.off('room:players', onRoomPlayers);
+      socket.off('room:error', onRoomError);
     };
   }, []);
 
+  const createRoom = () => {
+    if (!username.trim()) {
+      setError('Please enter a username.');
+      return;
+    }
+    socket.emit('room:create', { username: username.trim() });
+  };
+
+  const joinRoom = () => {
+    if (!username.trim()) {
+      setError('Please enter a username.');
+      return;
+    }
+    if (!joinCode.trim()) {
+      setError('Please enter a room code.');
+      return;
+    }
+    socket.emit('room:join', { roomId: joinCode.trim().toUpperCase(), username: username.trim() });
+  };
+
+  const leaveRoom = () => {
+    socket.emit('room:leave');
+    setRoomId(null);
+    setPlayers([]);
+    setHost(null);
+    setError('');
+  };
+
+  // ── Lobby View ──
+  if (roomId) {
+    return <Lobby roomId={roomId} players={players} host={host} onLeave={leaveRoom} />;
+  }
+
+  // ── Home View ──
   return (
     <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
       {/* Background Gradient Orbs */}
@@ -53,21 +118,92 @@ export default function Home() {
           <br />Outsmart. Deceive. Win.
         </p>
 
-        {/* CTA Button */}
-        <button
-          id="btn-play"
-          className="relative inline-flex items-center gap-2 px-8 py-3.5 rounded-xl font-semibold text-white text-lg
-                     transition-all duration-300 cursor-pointer
-                     hover:scale-105 hover:shadow-lg active:scale-95 animate-pulse-glow"
-          style={{
-            background: 'linear-gradient(135deg, var(--clr-primary), var(--clr-accent))',
-          }}
-        >
-          ▶ Play Now
-        </button>
+        {/* Room Controls */}
+        <div className="glass p-6 max-w-sm mx-auto text-left">
+          {/* Username */}
+          <input
+            id="input-username"
+            type="text"
+            placeholder="Enter your name"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            maxLength={20}
+            className="w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all duration-200
+                       focus:ring-2 mb-4"
+            style={{
+              background: 'var(--clr-surface-light)',
+              border: '1px solid var(--clr-border)',
+              color: 'var(--clr-text)',
+              '--tw-ring-color': 'var(--clr-primary)',
+            }}
+          />
+
+          {/* Create Room */}
+          <button
+            id="btn-create-room"
+            onClick={createRoom}
+            disabled={!isConnected}
+            className="w-full px-4 py-3 rounded-xl font-semibold text-white text-sm
+                       transition-all duration-300 cursor-pointer
+                       hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]
+                       disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+            style={{ background: 'linear-gradient(135deg, var(--clr-primary), var(--clr-accent))' }}
+          >
+            Create Room
+          </button>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 my-4">
+            <div className="flex-1 h-px" style={{ background: 'var(--clr-border)' }} />
+            <span className="text-xs font-medium" style={{ color: 'var(--clr-text-muted)' }}>or join</span>
+            <div className="flex-1 h-px" style={{ background: 'var(--clr-border)' }} />
+          </div>
+
+          {/* Join Room */}
+          <div className="flex gap-2">
+            <input
+              id="input-room-code"
+              type="text"
+              placeholder="Room code"
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+              maxLength={5}
+              className="flex-1 px-4 py-3 rounded-xl text-sm font-mono font-bold tracking-[0.2em] uppercase outline-none
+                         transition-all duration-200 focus:ring-2"
+              style={{
+                background: 'var(--clr-surface-light)',
+                border: '1px solid var(--clr-border)',
+                color: 'var(--clr-text)',
+                '--tw-ring-color': 'var(--clr-primary)',
+              }}
+            />
+            <button
+              id="btn-join-room"
+              onClick={joinRoom}
+              disabled={!isConnected}
+              className="px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-200
+                         cursor-pointer hover:scale-105 active:scale-95
+                         disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+              style={{
+                background: 'rgba(108, 92, 231, 0.15)',
+                border: '1px solid rgba(108, 92, 231, 0.3)',
+                color: 'var(--clr-primary-glow)',
+              }}
+            >
+              Join
+            </button>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <p className="text-xs mt-3 px-1" style={{ color: '#ff7675' }}>
+              {error}
+            </p>
+          )}
+        </div>
 
         {/* Connection Status */}
-        <div className="mt-12 glass inline-flex items-center gap-3 px-5 py-2.5">
+        <div className="mt-8 glass inline-flex items-center gap-3 px-5 py-2.5">
           <span className={`status-dot ${isConnected ? 'connected' : 'disconnected'}`} />
           <span className="text-sm font-medium" style={{ color: 'var(--clr-text-muted)' }}>
             {isConnected ? 'Connected to server' : 'Connecting...'}
