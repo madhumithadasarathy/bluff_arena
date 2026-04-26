@@ -1,5 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import socket from '../socket';
+import { motion, AnimatePresence } from 'framer-motion';
+import confetti from 'canvas-confetti';
+
+const getAvatarColor = (name) => {
+  const colors = [
+    'linear-gradient(135deg, #6c5ce7, #fd79a8)',
+    'linear-gradient(135deg, #00cec9, #0984e3)',
+    'linear-gradient(135deg, #fdcb6e, #e17055)',
+    'linear-gradient(135deg, #00b894, #00cec9)',
+    'linear-gradient(135deg, #e84393, #6c5ce7)',
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+};
 
 export default function Lobby({ roomId, players, host, username, onLeave }) {
   const [messages, setMessages] = useState([]);
@@ -88,6 +103,18 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // ── Confetti Effect ──
+  useEffect(() => {
+    if (gamePhase === 'result' && voteResult && voteResult.isLiarCaught) {
+      confetti({
+        particleCount: 150,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ['#00cec9', '#a29bfe', '#fd79a8', '#ffffff']
+      });
+    }
+  }, [gamePhase, voteResult]);
+
   const sendMessage = () => {
     if (!draft.trim()) return;
     socket.emit('chat:send', { roomId, message: draft.trim(), username });
@@ -173,170 +200,202 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
           </div>
         </div>
 
-        {/* ── Role Card (Playing Phase) ── */}
-        {gamePhase === 'playing' && role && (
-          <div className="mb-5 animate-fade-in-up">
-            <div
-              className="glass p-5 text-center"
-              style={{
-                borderColor: role === 'liar'
-                  ? 'rgba(253, 121, 168, 0.4)'
-                  : 'rgba(0, 206, 201, 0.4)',
-              }}
+        <AnimatePresence mode="wait">
+          {/* ── Role Card (Playing Phase) ── */}
+          {gamePhase === 'playing' && role && (
+            <motion.div 
+              key="playing"
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              transition={{ duration: 0.3 }}
+              className="mb-5"
             >
-              {/* Role Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-3"
+              <div
+                className="glass p-5 text-center"
+                style={{
+                  borderColor: role === 'liar'
+                    ? 'rgba(253, 121, 168, 0.4)'
+                    : 'rgba(0, 206, 201, 0.4)',
+                }}
+              >
+                {/* Role Badge */}
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-3"
+                     style={{
+                       background: role === 'liar'
+                         ? 'rgba(253, 121, 168, 0.15)'
+                         : 'rgba(0, 206, 201, 0.15)',
+                       border: `1px solid ${role === 'liar' ? 'rgba(253, 121, 168, 0.3)' : 'rgba(0, 206, 201, 0.3)'}`,
+                     }}>
+                  <span className="text-lg">{role === 'liar' ? '🤥' : '✅'}</span>
+                  <span className="text-sm font-bold tracking-wider uppercase"
+                        style={{ color: role === 'liar' ? 'var(--clr-accent-glow)' : 'var(--clr-success)' }}>
+                    {role === 'liar' ? 'You are the Liar' : 'You have the Truth'}
+                  </span>
+                </div>
+
+                {/* Prompt */}
+                <p className="text-xs mb-2" style={{ color: 'var(--clr-text-muted)' }}>Your prompt</p>
+                <p className="text-3xl font-black"
                    style={{
+                     fontFamily: 'var(--font-heading)',
                      background: role === 'liar'
-                       ? 'rgba(253, 121, 168, 0.15)'
-                       : 'rgba(0, 206, 201, 0.15)',
-                     border: `1px solid ${role === 'liar' ? 'rgba(253, 121, 168, 0.3)' : 'rgba(0, 206, 201, 0.3)'}`,
+                       ? 'linear-gradient(135deg, var(--clr-accent), var(--clr-accent-glow))'
+                       : 'linear-gradient(135deg, var(--clr-success), var(--clr-primary-glow))',
+                     WebkitBackgroundClip: 'text',
+                     WebkitTextFillColor: 'transparent',
+                     backgroundClip: 'text',
                    }}>
-                <span className="text-lg">{role === 'liar' ? '🤥' : '✅'}</span>
-                <span className="text-sm font-bold tracking-wider uppercase"
-                      style={{ color: role === 'liar' ? 'var(--clr-accent-glow)' : 'var(--clr-success)' }}>
-                  {role === 'liar' ? 'You are the Liar' : 'You have the Truth'}
-                </span>
-              </div>
-
-              {/* Prompt */}
-              <p className="text-xs mb-2" style={{ color: 'var(--clr-text-muted)' }}>Your prompt</p>
-              <p className="text-3xl font-black"
-                 style={{
-                   fontFamily: 'var(--font-heading)',
-                   background: role === 'liar'
-                     ? 'linear-gradient(135deg, var(--clr-accent), var(--clr-accent-glow))'
-                     : 'linear-gradient(135deg, var(--clr-success), var(--clr-primary-glow))',
-                   WebkitBackgroundClip: 'text',
-                   WebkitTextFillColor: 'transparent',
-                   backgroundClip: 'text',
-                 }}>
-                {prompt}
-              </p>
-
-              {role === 'liar' && (
-                <p className="text-xs mt-3" style={{ color: 'var(--clr-text-muted)' }}>
-                  Blend in! Others have a different word.
+                  {prompt}
                 </p>
-              )}
-              {role === 'truth' && (
-                <p className="text-xs mt-3" style={{ color: 'var(--clr-text-muted)' }}>
-                  Discuss carefully — find the liar!
-                </p>
-              )}
-            </div>
-          </div>
-        )}
 
-        {/* ── Voting UI (Voting Phase) ── */}
-        {gamePhase === 'voting' && (
-          <div className="mb-5 animate-fade-in-up">
-            <div className="glass p-5 text-center" style={{ borderColor: 'rgba(108, 92, 231, 0.4)' }}>
-              <h3 className="text-xl font-bold mb-2 gradient-text" style={{ fontFamily: 'var(--font-heading)' }}>
-                Who is the Liar?
-              </h3>
-              <p className="text-sm mb-4" style={{ color: 'var(--clr-text-muted)' }}>
-                {voteUpdate 
-                  ? `${voteUpdate.totalVotes} / ${voteUpdate.totalPlayers} voted` 
-                  : 'Cast your vote!'}
-              </p>
-              
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {players.map(p => {
-                  const isSelf = p.id === socket.id;
-                  const isSelected = votedFor === p.id;
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => submitVote(p.id)}
-                      disabled={isSelf || votedFor}
-                      className={`p-3 rounded-xl transition-all duration-200 border
-                        ${isSelected ? 'scale-105 shadow-lg' : 'hover:scale-105 active:scale-95'}
-                        ${(isSelf || votedFor && !isSelected) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                      `}
-                      style={{
-                        background: isSelected 
-                          ? 'rgba(108, 92, 231, 0.2)' 
-                          : 'rgba(255, 255, 255, 0.03)',
-                        borderColor: isSelected 
-                          ? 'var(--clr-primary-glow)' 
-                          : 'rgba(255, 255, 255, 0.1)',
-                      }}
-                    >
-                      <div className="font-semibold text-sm truncate">{p.username}</div>
-                      {isSelf && <div className="text-[10px]" style={{ color: 'var(--clr-text-muted)' }}>(You)</div>}
-                      {isSelected && <div className="text-[10px] mt-1 text-green-400 font-bold">VOTED</div>}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── Result UI (Result Phase) ── */}
-        {gamePhase === 'result' && voteResult && (
-          <div className="mb-5 animate-fade-in-up">
-            <div className="glass p-6 text-center" style={{ 
-              borderColor: voteResult.isLiarCaught ? 'var(--clr-success)' : 'var(--clr-accent)',
-            }}>
-              <h3 className="text-3xl font-black mb-1" style={{ 
-                fontFamily: 'var(--font-heading)',
-                color: voteResult.isLiarCaught ? 'var(--clr-success)' : 'var(--clr-accent-glow)'
-              }}>
-                {voteResult.isLiarCaught ? 'Liar Caught!' : 'Liar Escaped!'}
-              </h3>
-              
-              <div className="my-4 p-4 rounded-xl" style={{ background: 'rgba(0,0,0,0.2)' }}>
-                <p className="text-sm" style={{ color: 'var(--clr-text-muted)' }}>The liar was</p>
-                <p className="text-2xl font-bold mt-1">
-                  {players.find(p => p.id === voteResult.liarId)?.username || 'Unknown'}
-                </p>
-                
-                {voteResult.votedPlayerId && voteResult.votedPlayerId !== voteResult.liarId && (
-                  <p className="text-sm mt-3 text-gray-400">
-                    Most voted: {players.find(p => p.id === voteResult.votedPlayerId)?.username}
+                {role === 'liar' && (
+                  <p className="text-xs mt-3" style={{ color: 'var(--clr-text-muted)' }}>
+                    Blend in! Others have a different word.
+                  </p>
+                )}
+                {role === 'truth' && (
+                  <p className="text-xs mt-3" style={{ color: 'var(--clr-text-muted)' }}>
+                    Discuss carefully — find the liar!
                   </p>
                 )}
               </div>
+            </motion.div>
+          )}
 
-              <div className="text-left mt-4">
-                <p className="text-xs uppercase tracking-wider mb-2" style={{ color: 'var(--clr-text-muted)' }}>Vote Breakdown</p>
-                <div className="space-y-1 text-sm">
-                  {Object.entries(voteResult.voteBreakdown).map(([voterId, targetId]) => {
-                    const voter = players.find(p => p.id === voterId)?.username || 'Unknown';
-                    const target = players.find(p => p.id === targetId)?.username || 'Unknown';
+          {/* ── Voting UI (Voting Phase) ── */}
+          {gamePhase === 'voting' && (
+            <motion.div 
+              key="voting"
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              transition={{ duration: 0.3 }}
+              className="mb-5"
+            >
+              <div className="glass p-5 text-center" style={{ borderColor: 'rgba(108, 92, 231, 0.4)' }}>
+                <h3 className="text-xl font-bold mb-2 gradient-text" style={{ fontFamily: 'var(--font-heading)' }}>
+                  Who is the Liar?
+                </h3>
+                <p className="text-sm mb-4" style={{ color: 'var(--clr-text-muted)' }}>
+                  {voteUpdate 
+                    ? `${voteUpdate.totalVotes} / ${voteUpdate.totalPlayers} voted` 
+                    : 'Cast your vote!'}
+                </p>
+                
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {players.map(p => {
+                    const isSelf = p.id === socket.id;
+                    const isSelected = votedFor === p.id;
                     return (
-                      <div key={voterId} className="flex justify-between border-b border-gray-800 pb-1">
-                        <span className="text-gray-300">{voter}</span>
-                        <span className="text-gray-500">→</span>
-                        <span className={targetId === voteResult.liarId ? 'text-green-400 font-medium' : 'text-red-400 font-medium'}>
-                          {target}
-                        </span>
-                      </div>
+                      <motion.button
+                        whileHover={!(isSelf || votedFor) ? { scale: 1.05 } : {}}
+                        whileTap={!(isSelf || votedFor) ? { scale: 0.95 } : {}}
+                        key={p.id}
+                        onClick={() => submitVote(p.id)}
+                        disabled={isSelf || votedFor}
+                        className={`p-3 rounded-xl transition-colors duration-200 border
+                          ${isSelected ? 'shadow-lg' : ''}
+                          ${(isSelf || votedFor && !isSelected) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                        `}
+                        style={{
+                          background: isSelected 
+                            ? 'rgba(108, 92, 231, 0.2)' 
+                            : 'rgba(255, 255, 255, 0.03)',
+                          borderColor: isSelected 
+                            ? 'var(--clr-primary-glow)' 
+                            : 'rgba(255, 255, 255, 0.1)',
+                        }}
+                      >
+                        <div className="font-semibold text-sm truncate">{p.username}</div>
+                        {isSelf && <div className="text-[10px]" style={{ color: 'var(--clr-text-muted)' }}>(You)</div>}
+                        {isSelected && <div className="text-[10px] mt-1 text-green-400 font-bold">VOTED</div>}
+                      </motion.button>
                     );
                   })}
                 </div>
               </div>
-            </div>
-            
-            {/* Scoreboard Section */}
-            <div className="text-left mt-6 pt-4 border-t border-gray-800">
-              <p className="text-xs uppercase tracking-wider mb-3" style={{ color: 'var(--clr-primary-glow)' }}>🏆 Scoreboard</p>
-              <div className="space-y-2">
-                {[...players].sort((a, b) => b.score - a.score).map((p, index) => (
-                  <div key={p.id} className="flex justify-between items-center p-2 rounded-lg" style={{ background: index === 0 ? 'rgba(0, 206, 201, 0.1)' : 'rgba(255, 255, 255, 0.05)' }}>
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">{index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : ''}</span>
-                      <span className={index === 0 ? 'font-bold text-[var(--clr-success)]' : 'text-gray-300'}>{p.username}</span>
-                    </div>
-                    <span className="font-black text-lg">{p.score} <span className="text-xs text-gray-500 font-normal">pts</span></span>
+            </motion.div>
+          )}
+
+          {/* ── Result UI (Result Phase) ── */}
+          {gamePhase === 'result' && voteResult && (
+            <motion.div 
+              key="result"
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              transition={{ duration: 0.3 }}
+              className="mb-5"
+            >
+              <div className="glass p-6 text-center" style={{ 
+                borderColor: voteResult.isLiarCaught ? 'var(--clr-success)' : 'var(--clr-accent)',
+              }}>
+                <h3 className="text-3xl font-black mb-1" style={{ 
+                  fontFamily: 'var(--font-heading)',
+                  color: voteResult.isLiarCaught ? 'var(--clr-success)' : 'var(--clr-accent-glow)'
+                }}>
+                  {voteResult.isLiarCaught ? 'Liar Caught!' : 'Liar Escaped!'}
+                </h3>
+                
+                <div className="my-4 p-4 rounded-xl" style={{ background: 'rgba(0,0,0,0.2)' }}>
+                  <p className="text-sm" style={{ color: 'var(--clr-text-muted)' }}>The liar was</p>
+                  <p className="text-2xl font-bold mt-1">
+                    {players.find(p => p.id === voteResult.liarId)?.username || 'Unknown'}
+                  </p>
+                  
+                  {voteResult.votedPlayerId && voteResult.votedPlayerId !== voteResult.liarId && (
+                    <p className="text-sm mt-3 text-gray-400">
+                      Most voted: {players.find(p => p.id === voteResult.votedPlayerId)?.username}
+                    </p>
+                  )}
+                </div>
+
+                <div className="text-left mt-4">
+                  <p className="text-xs uppercase tracking-wider mb-2" style={{ color: 'var(--clr-text-muted)' }}>Vote Breakdown</p>
+                  <div className="space-y-1 text-sm">
+                    {Object.entries(voteResult.voteBreakdown).map(([voterId, targetId]) => {
+                      const voter = players.find(p => p.id === voterId)?.username || 'Unknown';
+                      const target = players.find(p => p.id === targetId)?.username || 'Unknown';
+                      return (
+                        <div key={voterId} className="flex justify-between border-b border-gray-800 pb-1">
+                          <span className="text-gray-300">{voter}</span>
+                          <span className="text-gray-500">→</span>
+                          <span className={targetId === voteResult.liarId ? 'text-green-400 font-medium' : 'text-red-400 font-medium'}>
+                            {target}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+              
+              {/* Scoreboard Section */}
+              <div className="text-left mt-6 pt-4 border-t border-gray-800">
+                <p className="text-xs uppercase tracking-wider mb-3" style={{ color: 'var(--clr-primary-glow)' }}>🏆 Scoreboard</p>
+                <div className="space-y-2">
+                  {[...players].sort((a, b) => b.score - a.score).map((p, index) => (
+                    <motion.div 
+                      key={p.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="flex justify-between items-center p-2 rounded-lg" 
+                      style={{ background: index === 0 ? 'rgba(0, 206, 201, 0.1)' : 'rgba(255, 255, 255, 0.05)' }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : ''}</span>
+                        <span className={index === 0 ? 'font-bold text-[var(--clr-success)]' : 'text-gray-300'}>{p.username}</span>
+                      </div>
+                      <span className="font-black text-lg">{p.score} <span className="text-xs text-gray-500 font-normal">pts</span></span>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Two-column layout: Players + Chat */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -368,8 +427,8 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
                   }}
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
-                         style={{ background: 'linear-gradient(135deg, var(--clr-primary), var(--clr-accent))', color: '#fff' }}>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-md"
+                         style={{ background: getAvatarColor(player.username), color: '#fff' }}>
                       {player.username.charAt(0).toUpperCase()}
                     </div>
                     <span className="text-sm font-medium">
@@ -399,30 +458,30 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
 
             {/* Start Game (host only, waiting or result phase) */}
             {isHost && (gamePhase === 'waiting' || gamePhase === 'result') && (
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 id="btn-start-game"
                 onClick={startGame}
-                className="w-full mt-4 px-4 py-2.5 rounded-xl font-semibold text-sm text-white
-                           transition-all duration-300 cursor-pointer
-                           hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
+                className="w-full mt-4 px-4 py-2.5 rounded-xl font-semibold text-sm text-white shadow-[0_0_15px_rgba(108,92,231,0.4)] transition-shadow hover:shadow-[0_0_25px_rgba(108,92,231,0.6)] cursor-pointer"
                 style={{ background: 'linear-gradient(135deg, var(--clr-primary), var(--clr-accent))' }}
               >
                 🎮 {gamePhase === 'result' ? 'Play Again' : 'Start Game'}
-              </button>
+              </motion.button>
             )}
 
             {/* Start Voting (host only, playing phase) */}
             {isHost && gamePhase === 'playing' && (
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 id="btn-start-voting"
                 onClick={startVoting}
-                className="w-full mt-4 px-4 py-2.5 rounded-xl font-semibold text-sm text-white
-                           transition-all duration-300 cursor-pointer
-                           hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
+                className="w-full mt-4 px-4 py-2.5 rounded-xl font-semibold text-sm text-white shadow-[0_0_15px_rgba(0,206,201,0.4)] transition-shadow hover:shadow-[0_0_25px_rgba(0,206,201,0.6)] cursor-pointer"
                 style={{ background: 'linear-gradient(135deg, var(--clr-success), var(--clr-primary))' }}
               >
                 🗳️ Start Voting
-              </button>
+              </motion.button>
             )}
 
             {/* Error message */}
@@ -473,8 +532,14 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
 
               {messages.map((msg, i) => {
                 const isMe = msg.username === username;
+                const isLatest = i === messages.length - 1;
                 return (
-                  <div key={i} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                  <motion.div 
+                    initial={{ opacity: 0, x: isMe ? 20 : -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    key={i} 
+                    className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
+                  >
                     {/* Username label */}
                     {!isMe && (
                       <span className="text-[10px] font-medium mb-0.5 ml-1"
@@ -493,6 +558,7 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
                         color: '#fff',
                         borderBottomRightRadius: isMe ? '6px' : '16px',
                         borderBottomLeftRadius: isMe ? '16px' : '6px',
+                        boxShadow: isLatest && !isMe ? '0 0 10px rgba(108, 92, 231, 0.2)' : 'none'
                       }}
                     >
                       {msg.message}
@@ -501,7 +567,7 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
                     <span className="text-[10px] mt-0.5 mx-1" style={{ color: 'var(--clr-text-muted)' }}>
                       {formatTime(msg.timestamp)}
                     </span>
-                  </div>
+                  </motion.div>
                 );
               })}
               <div ref={messagesEndRef} />
@@ -524,17 +590,18 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
                   '--tw-ring-color': 'var(--clr-primary)',
                 }}
               />
-              <button
+              <motion.button
+                whileHover={draft.trim() ? { scale: 1.05 } : {}}
+                whileTap={draft.trim() ? { scale: 0.95 } : {}}
                 id="btn-send-chat"
                 onClick={sendMessage}
                 disabled={!draft.trim()}
                 className="px-4 py-2.5 rounded-xl font-semibold text-sm text-white transition-all duration-200
-                           cursor-pointer hover:scale-105 active:scale-95
-                           disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100"
+                           cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                 style={{ background: 'linear-gradient(135deg, var(--clr-primary), var(--clr-accent))' }}
               >
                 Send
-              </button>
+              </motion.button>
             </div>
           </div>
         </div>
