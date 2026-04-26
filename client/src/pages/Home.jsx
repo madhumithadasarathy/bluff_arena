@@ -85,7 +85,7 @@ export default function Home() {
 
   // ── Lobby View ──
   if (roomId) {
-    return <Lobby roomId={roomId} players={players} host={host} onLeave={leaveRoom} />;
+    return <Lobby roomId={roomId} players={players} host={host} username={username} onLeave={leaveRoom} />;
   }
 
   // ── Home View ──
