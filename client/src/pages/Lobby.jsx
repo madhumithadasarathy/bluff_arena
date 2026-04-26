@@ -17,6 +17,18 @@ const getAvatarColor = (name) => {
   return colors[Math.abs(hash) % colors.length];
 };
 
+const getSuit = (name) => {
+  const suits = [
+    { symbol: '♠', color: 'var(--clr-text-muted)' },
+    { symbol: '♥', color: '#8b0000' },
+    { symbol: '♦', color: '#8b0000' },
+    { symbol: '♣', color: 'var(--clr-text-muted)' },
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return suits[Math.abs(hash) % suits.length];
+};
+
 function TiltCard({ children, isSelected, disabled, onClick, dimOthers }) {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -400,7 +412,10 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
                         onClick={() => submitVote(p.id)}
                         dimOthers={dimOthers}
                       >
-                        <div className="font-semibold text-lg truncate drop-shadow-md">{p.username}</div>
+                        <div className="font-semibold text-lg truncate drop-shadow-md">
+                          <span style={{ color: getSuit(p.username).color, marginRight: '4px' }}>{getSuit(p.username).symbol}</span>
+                          {p.username}
+                        </div>
                         {isSelf && <div className="text-xs mt-1" style={{ color: 'var(--clr-text-muted)' }}>(You)</div>}
                         {isSelected && <div className="text-xs mt-2 font-black tracking-widest drop-shadow-lg" style={{ color: 'var(--clr-primary)' }}>VOTED</div>}
                       </TiltCard>
@@ -479,7 +494,10 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-lg">{index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : ''}</span>
-                        <span className={index === 0 ? 'font-bold text-[var(--clr-success)]' : 'text-gray-300'}>{p.username}</span>
+                        <span className={index === 0 ? 'font-bold text-[var(--clr-success)]' : 'text-gray-300'}>
+                          <span style={{ color: getSuit(p.username).color, marginRight: '4px' }}>{getSuit(p.username).symbol}</span>
+                          {p.username}
+                        </span>
                       </div>
                       <span className="font-black text-lg">{p.score} <span className="text-xs text-gray-500 font-normal">pts</span></span>
                     </motion.div>
@@ -525,6 +543,7 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
                       {player.username.charAt(0).toUpperCase()}
                     </div>
                     <span className="text-sm font-medium">
+                      <span style={{ color: getSuit(player.username).color, marginRight: '4px' }}>{getSuit(player.username).symbol}</span>
                       {player.username}
                       {player.id === socket.id && (
                         <span className="text-xs ml-1" style={{ color: 'var(--clr-text-muted)' }}>(you)</span>
