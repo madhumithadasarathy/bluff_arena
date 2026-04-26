@@ -108,7 +108,7 @@ export default function Home() {
         {/* Logo / Title */}
         <div className="mb-6">
           <span className="inline-block text-sm font-medium tracking-[0.3em] uppercase mb-4 px-4 py-1.5 rounded-full border"
-                style={{ color: 'var(--clr-primary-glow)', borderColor: 'var(--clr-border)', background: 'rgba(108, 92, 231, 0.08)' }}>
+                style={{ color: 'var(--clr-primary-glow)', borderColor: 'var(--clr-border)', background: 'rgba(212, 175, 55, 0.1)' }}>
             🃏 Card Game
           </span>
         </div>
@@ -191,9 +191,9 @@ export default function Home() {
                          cursor-pointer hover:scale-105 active:scale-95
                          disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
               style={{
-                background: 'rgba(108, 92, 231, 0.15)',
-                border: '1px solid rgba(108, 92, 231, 0.3)',
-                color: 'var(--clr-primary-glow)',
+                background: 'rgba(212, 175, 55, 0.15)',
+                border: '1px solid rgba(212, 175, 55, 0.3)',
+                color: 'var(--clr-primary)',
               }}
             >
               Join

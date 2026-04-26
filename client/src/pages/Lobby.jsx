@@ -5,11 +5,11 @@ import confetti from 'canvas-confetti';
 
 const getAvatarColor = (name) => {
   const colors = [
-    'linear-gradient(135deg, #6c5ce7, #fd79a8)',
-    'linear-gradient(135deg, #00cec9, #0984e3)',
-    'linear-gradient(135deg, #fdcb6e, #e17055)',
-    'linear-gradient(135deg, #00b894, #00cec9)',
-    'linear-gradient(135deg, #e84393, #6c5ce7)',
+    'linear-gradient(135deg, #8b0000, #4a0000)', // Deep Red
+    'linear-gradient(135deg, #d4af37, #aa8623)', // Gold
+    'linear-gradient(135deg, #183b2b, #0b1f17)', // Dark Green
+    'linear-gradient(135deg, #444444, #1a1a1a)', // Charcoal
+    'linear-gradient(135deg, #b87333, #8a501c)', // Copper/Bronze
   ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -192,7 +192,7 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
             <button
               onClick={copyRoomId}
               className="p-2 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer"
-              style={{ background: 'rgba(108, 92, 231, 0.15)', color: 'var(--clr-primary-glow)' }}
+              style={{ background: 'rgba(212, 175, 55, 0.15)', color: 'var(--clr-primary)' }}
               title="Copy room code"
             >
               📋
@@ -215,17 +215,17 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
                 className="glass p-5 text-center"
                 style={{
                   borderColor: role === 'liar'
-                    ? 'rgba(253, 121, 168, 0.4)'
-                    : 'rgba(0, 206, 201, 0.4)',
+                    ? 'rgba(139, 0, 0, 0.4)'
+                    : 'rgba(212, 175, 55, 0.4)',
                 }}
               >
                 {/* Role Badge */}
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-3"
                      style={{
                        background: role === 'liar'
-                         ? 'rgba(253, 121, 168, 0.15)'
-                         : 'rgba(0, 206, 201, 0.15)',
-                       border: `1px solid ${role === 'liar' ? 'rgba(253, 121, 168, 0.3)' : 'rgba(0, 206, 201, 0.3)'}`,
+                         ? 'rgba(139, 0, 0, 0.15)'
+                         : 'rgba(212, 175, 55, 0.15)',
+                       border: `1px solid ${role === 'liar' ? 'rgba(139, 0, 0, 0.3)' : 'rgba(212, 175, 55, 0.3)'}`,
                      }}>
                   <span className="text-lg">{role === 'liar' ? '🤥' : '✅'}</span>
                   <span className="text-sm font-bold tracking-wider uppercase"
@@ -273,7 +273,7 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
               transition={{ duration: 0.3 }}
               className="mb-5"
             >
-              <div className="glass p-5 text-center" style={{ borderColor: 'rgba(108, 92, 231, 0.4)' }}>
+              <div className="glass p-5 text-center" style={{ borderColor: 'var(--clr-border)' }}>
                 <h3 className="text-xl font-bold mb-2 gradient-text" style={{ fontFamily: 'var(--font-heading)' }}>
                   Who is the Liar?
                 </h3>
@@ -300,7 +300,7 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
                         `}
                         style={{
                           background: isSelected 
-                            ? 'rgba(108, 92, 231, 0.2)' 
+                            ? 'rgba(212, 175, 55, 0.2)' 
                             : 'rgba(255, 255, 255, 0.03)',
                           borderColor: isSelected 
                             ? 'var(--clr-primary-glow)' 
@@ -382,7 +382,7 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.1 }}
                       className="flex justify-between items-center p-2 rounded-lg" 
-                      style={{ background: index === 0 ? 'rgba(0, 206, 201, 0.1)' : 'rgba(255, 255, 255, 0.05)' }}
+                      style={{ background: index === 0 ? 'rgba(212, 175, 55, 0.15)' : 'rgba(255, 255, 255, 0.05)' }}
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-lg">{index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : ''}</span>
@@ -407,7 +407,7 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
                 Players
               </h3>
               <span className="text-xs px-2.5 py-1 rounded-full"
-                    style={{ background: 'rgba(108, 92, 231, 0.15)', color: 'var(--clr-primary-glow)' }}>
+                    style={{ background: 'rgba(212, 175, 55, 0.15)', color: 'var(--clr-primary-glow)' }}>
                 {players.length}
               </span>
             </div>
@@ -419,10 +419,10 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
                   className="flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200"
                   style={{
                     background: player.id === socket.id
-                      ? 'rgba(108, 92, 231, 0.12)'
+                      ? 'rgba(212, 175, 55, 0.12)'
                       : 'rgba(255, 255, 255, 0.03)',
                     border: player.id === socket.id
-                      ? '1px solid rgba(108, 92, 231, 0.3)'
+                      ? '1px solid rgba(212, 175, 55, 0.3)'
                       : '1px solid transparent',
                   }}
                 >
@@ -440,7 +440,7 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
                   </div>
                   {player.id === host && (
                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                          style={{ background: 'rgba(253, 121, 168, 0.15)', color: 'var(--clr-accent-glow)' }}>
+                          style={{ background: 'rgba(139, 0, 0, 0.15)', color: 'var(--clr-accent-glow)' }}>
                       👑
                     </span>
                   )}
@@ -463,7 +463,7 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
                 whileTap={{ scale: 0.98 }}
                 id="btn-start-game"
                 onClick={startGame}
-                className="w-full mt-4 px-4 py-2.5 rounded-xl font-semibold text-sm text-white shadow-[0_0_15px_rgba(108,92,231,0.4)] transition-shadow hover:shadow-[0_0_25px_rgba(108,92,231,0.6)] cursor-pointer"
+                className="w-full mt-4 px-4 py-2.5 rounded-xl font-semibold text-sm text-white shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-shadow hover:shadow-[0_0_25px_rgba(212,175,55,0.6)] cursor-pointer"
                 style={{ background: 'linear-gradient(135deg, var(--clr-primary), var(--clr-accent))' }}
               >
                 🎮 {gamePhase === 'result' ? 'Play Again' : 'Start Game'}
@@ -477,7 +477,7 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
                 whileTap={{ scale: 0.98 }}
                 id="btn-start-voting"
                 onClick={startVoting}
-                className="w-full mt-4 px-4 py-2.5 rounded-xl font-semibold text-sm text-white shadow-[0_0_15px_rgba(0,206,201,0.4)] transition-shadow hover:shadow-[0_0_25px_rgba(0,206,201,0.6)] cursor-pointer"
+                className="w-full mt-4 px-4 py-2.5 rounded-xl font-semibold text-sm text-white shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-shadow hover:shadow-[0_0_25px_rgba(212,175,55,0.6)] cursor-pointer"
                 style={{ background: 'linear-gradient(135deg, var(--clr-success), var(--clr-primary))' }}
               >
                 🗳️ Start Voting
@@ -504,8 +504,8 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
               className={`w-full px-4 py-2 rounded-xl font-medium text-xs transition-all duration-200
                          hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${gamePhase !== 'waiting' || (!isHost) ? 'mt-4' : 'mt-2'}`}
               style={{
-                background: 'rgba(214, 48, 49, 0.1)',
-                border: '1px solid rgba(214, 48, 49, 0.25)',
+                background: 'rgba(139, 0, 0, 0.1)',
+                border: '1px solid rgba(139, 0, 0, 0.25)',
                 color: '#ff7675',
               }}
             >
@@ -552,13 +552,13 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
                       className="max-w-[80%] px-3.5 py-2 rounded-2xl text-sm"
                       style={{
                         background: isMe
-                          ? 'linear-gradient(135deg, var(--clr-primary), rgba(253, 121, 168, 0.7))'
+                          ? 'linear-gradient(135deg, var(--clr-primary), rgba(139, 0, 0, 0.7))'
                           : 'var(--clr-surface-light)',
                         border: isMe ? 'none' : '1px solid var(--clr-border)',
                         color: '#fff',
                         borderBottomRightRadius: isMe ? '6px' : '16px',
                         borderBottomLeftRadius: isMe ? '16px' : '6px',
-                        boxShadow: isLatest && !isMe ? '0 0 10px rgba(108, 92, 231, 0.2)' : 'none'
+                        boxShadow: isLatest && !isMe ? '0 0 10px rgba(212, 175, 55, 0.3)' : 'none'
                       }}
                     >
                       {msg.message}

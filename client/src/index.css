@@ -1,5 +1,5 @@
 /* ── Custom Fonts ── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,18 +7,20 @@
 
 /* ── Design Tokens ── */
 :root {
-  --clr-bg: #0a0a0f;
-  --clr-surface: #13131a;
-  --clr-surface-light: #1c1c27;
-  --clr-border: #2a2a3a;
-  --clr-primary: #6c5ce7;
-  --clr-primary-glow: #a29bfe;
-  --clr-accent: #fd79a8;
-  --clr-accent-glow: #fab1d0;
-  --clr-text: #e8e8f0;
-  --clr-text-muted: #8a8a9a;
-  --clr-success: #00cec9;
-  --font-heading: 'Outfit', sans-serif;
+  --clr-bg: #0b1f17;
+  --clr-surface: rgba(11, 31, 23, 0.85);
+  --clr-surface-light: rgba(17, 43, 33, 0.9);
+  --clr-border: rgba(212, 175, 55, 0.3);
+  --clr-primary: #d4af37;
+  --clr-primary-glow: rgba(212, 175, 55, 0.4);
+  --clr-accent: #8b0000;
+  --clr-accent-glow: rgba(139, 0, 0, 0.4);
+  --clr-text: #f5f5f5;
+  --clr-text-muted: #a4b3aa;
+  --clr-success: #d4af37;
+  --clr-card-bg: #f8f5e4;
+  --clr-card-text: #0f0f0f;
+  --font-heading: 'Playfair Display', serif;
   --font-body: 'Inter', sans-serif;
 }
 
@@ -85,16 +87,17 @@ body {
 
 /* ── Glassmorphism ── */
 .glass {
-  background: rgba(19, 19, 26, 0.6);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: var(--clr-surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--clr-border);
-  border-radius: 16px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
 /* ── Gradient Text ── */
 .gradient-text {
-  background: linear-gradient(135deg, var(--clr-primary-glow), var(--clr-accent));
+  background: linear-gradient(135deg, #f9d77e, var(--clr-primary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
