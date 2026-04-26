@@ -11,8 +11,48 @@ const promptPairs = [
   { truth: 'Moon', lie: 'Sun' },
   { truth: 'Sneakers', lie: 'Boots' },
   { truth: 'Painting', lie: 'Sculpture' },
+  { truth: 'Painting', lie: 'Sculpture' },
   { truth: 'Rain', lie: 'Snow' },
 ];
+
+const startVotingPhase = (io, roomId, room) => {
+  room.game.status = 'voting';
+  room.game.votes = {};
+  room.game.hasVoted = [];
+
+  io.to(roomId).emit('game:phase', 'voting');
+  console.log(`🗳️ Voting started in room ${roomId}`);
+  
+  startTimer(io, roomId, 30, 'result');
+};
+
+const startTimer = (io, roomId, duration, nextPhase) => {
+  const room = rooms[roomId];
+  if (!room || !room.game) return;
+
+  if (room.game.timerInterval) {
+    clearInterval(room.game.timerInterval);
+  }
+
+  room.game.timer = duration;
+  io.to(roomId).emit('game:timer', { timeLeft: room.game.timer });
+
+  room.game.timerInterval = setInterval(() => {
+    room.game.timer -= 1;
+    io.to(roomId).emit('game:timer', { timeLeft: room.game.timer });
+
+    if (room.game.timer <= 0) {
+      clearInterval(room.game.timerInterval);
+      room.game.timerInterval = null;
+      
+      if (nextPhase === 'voting') {
+        startVotingPhase(io, roomId, room);
+      } else if (nextPhase === 'result') {
+        endVoting(io, roomId, room);
+      }
+    }
+  }, 1000);
+};
 
 /**
  * Register game-related socket events on a given socket.
@@ -64,6 +104,8 @@ const registerGameHandlers = (io, socket) => {
       prompts: pair,
       votes: {},       // { voterId: targetId }
       hasVoted: [],    // [socketId]
+      timer: 0,
+      timerInterval: null,
     };
 
     // Emit role PRIVATELY to each player
@@ -82,6 +124,9 @@ const registerGameHandlers = (io, socket) => {
 
     const liarName = room.players[liarIndex].username;
     console.log(`🎮 Game started in room ${roomId} — Liar: ${liarName} | Truth: "${pair.truth}" / Lie: "${pair.lie}"`);
+
+    // Start discussion timer
+    startTimer(io, roomId, 60, 'voting');
   });
 
   // ── game:startVoting ──
@@ -93,12 +138,11 @@ const registerGameHandlers = (io, socket) => {
     if (room.host !== socket.id) return;
     if (room.game.status !== 'playing') return;
 
-    room.game.status = 'voting';
-    room.game.votes = {};
-    room.game.hasVoted = [];
+    if (room.game.timerInterval) {
+      clearInterval(room.game.timerInterval);
+    }
 
-    io.to(roomId).emit('game:phase', 'voting');
-    console.log(`🗳️ Voting started in room ${roomId}`);
+    startVotingPhase(io, roomId, room);
   });
 
   // ── vote:submit ──
@@ -131,6 +175,11 @@ const registerGameHandlers = (io, socket) => {
 };
 
 const endVoting = (io, roomId, room) => {
+  if (room.game.timerInterval) {
+    clearInterval(room.game.timerInterval);
+    room.game.timerInterval = null;
+  }
+
   room.game.status = 'result';
 
   // Count votes

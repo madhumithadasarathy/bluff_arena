@@ -16,6 +16,7 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
   const [votedFor, setVotedFor] = useState(null);
   const [voteUpdate, setVoteUpdate] = useState(null);
   const [voteResult, setVoteResult] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(null);
 
   const isHost = socket.id === host;
 
@@ -30,6 +31,7 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
       setVotedFor(null);
       setVoteUpdate(null);
       setVoteResult(null);
+      setTimeLeft(null);
     }
 
     function onGameRole({ role, prompt }) {
@@ -53,6 +55,11 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
     function onVoteResult(data) {
       setGamePhase('result');
       setVoteResult(data);
+      setTimeLeft(null);
+    }
+
+    function onGameTimer({ timeLeft }) {
+      setTimeLeft(timeLeft);
     }
 
     socket.on('chat:message', onChatMessage);
@@ -62,6 +69,7 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
     socket.on('game:phase', onGamePhase);
     socket.on('vote:update', onVoteUpdate);
     socket.on('vote:result', onVoteResult);
+    socket.on('game:timer', onGameTimer);
 
     return () => {
       socket.off('chat:message', onChatMessage);
@@ -71,6 +79,7 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
       socket.off('game:phase', onGamePhase);
       socket.off('vote:update', onVoteUpdate);
       socket.off('vote:result', onVoteResult);
+      socket.off('game:timer', onGameTimer);
     };
   }, []);
 
@@ -124,6 +133,24 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
            style={{ background: 'radial-gradient(circle, var(--clr-accent) 0%, transparent 70%)' }} />
 
       <div className="relative z-10 w-full max-w-2xl animate-fade-in-up">
+        {/* Timer UI */}
+        {timeLeft !== null && gamePhase !== 'waiting' && gamePhase !== 'result' && (
+          <div className="flex justify-center mb-6">
+            <div 
+              className={`flex flex-col items-center justify-center w-20 h-20 rounded-full border-4 shadow-lg transition-colors duration-300 ${
+                timeLeft <= 10 
+                  ? 'border-red-500 shadow-red-500/50 animate-pulse text-red-500' 
+                  : 'border-[var(--clr-primary)] shadow-[var(--clr-primary-glow)] text-white'
+              }`}
+              style={{ background: 'rgba(0, 0, 0, 0.4)' }}
+            >
+              <span className="text-3xl font-black" style={{ fontFamily: 'var(--font-heading)' }}>
+                {timeLeft}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Room Header */}
         <div className="text-center mb-6">
           <p className="text-sm font-medium tracking-[0.2em] uppercase mb-2"
