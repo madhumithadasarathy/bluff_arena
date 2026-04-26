@@ -8,6 +8,7 @@ const { connectDB, getDBStatus } = require('./config/db');
 const healthRoutes = require('./routes/health');
 const { registerRoomHandlers } = require('./socket/roomHandler');
 const { registerChatHandlers } = require('./socket/chatHandler');
+const { registerGameHandlers } = require('./socket/gameHandler');
 
 // ── App & Server ──
 const app = express();
@@ -37,6 +38,7 @@ io.on('connection', (socket) => {
   // Register room events for this socket
   registerRoomHandlers(io, socket);
   registerChatHandlers(io, socket);
+  registerGameHandlers(io, socket);
 
   socket.on('disconnect', (reason) => {
     console.log(`🔴 Client disconnected: ${socket.id} — ${reason}`);

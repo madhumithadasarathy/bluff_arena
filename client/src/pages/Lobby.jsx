@@ -6,16 +6,36 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
   const [draft, setDraft] = useState('');
   const messagesEndRef = useRef(null);
 
-  // ── Socket listener for incoming chat messages ──
+  // ── Game state ──
+  const [gameActive, setGameActive] = useState(false);
+  const [role, setRole] = useState(null);       // "liar" | "truth"
+  const [prompt, setPrompt] = useState(null);
+
+  const isHost = socket.id === host;
+
+  // ── Socket listeners ──
   useEffect(() => {
     function onChatMessage(payload) {
       setMessages((prev) => [...prev, payload]);
     }
 
+    function onGameStarted() {
+      setGameActive(true);
+    }
+
+    function onGameRole({ role, prompt }) {
+      setRole(role);
+      setPrompt(prompt);
+    }
+
     socket.on('chat:message', onChatMessage);
+    socket.on('game:started', onGameStarted);
+    socket.on('game:role', onGameRole);
 
     return () => {
       socket.off('chat:message', onChatMessage);
+      socket.off('game:started', onGameStarted);
+      socket.off('game:role', onGameRole);
     };
   }, []);
 
@@ -44,6 +64,10 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
 
   const copyRoomId = () => {
     navigator.clipboard.writeText(roomId);
+  };
+
+  const startGame = () => {
+    socket.emit('game:start', { roomId });
   };
 
   return (
@@ -76,6 +100,61 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
             </button>
           </div>
         </div>
+
+        {/* ── Role Card (only when game is active) ── */}
+        {gameActive && role && (
+          <div className="mb-5 animate-fade-in-up">
+            <div
+              className="glass p-5 text-center"
+              style={{
+                borderColor: role === 'liar'
+                  ? 'rgba(253, 121, 168, 0.4)'
+                  : 'rgba(0, 206, 201, 0.4)',
+              }}
+            >
+              {/* Role Badge */}
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-3"
+                   style={{
+                     background: role === 'liar'
+                       ? 'rgba(253, 121, 168, 0.15)'
+                       : 'rgba(0, 206, 201, 0.15)',
+                     border: `1px solid ${role === 'liar' ? 'rgba(253, 121, 168, 0.3)' : 'rgba(0, 206, 201, 0.3)'}`,
+                   }}>
+                <span className="text-lg">{role === 'liar' ? '🤥' : '✅'}</span>
+                <span className="text-sm font-bold tracking-wider uppercase"
+                      style={{ color: role === 'liar' ? 'var(--clr-accent-glow)' : 'var(--clr-success)' }}>
+                  {role === 'liar' ? 'You are the Liar' : 'You have the Truth'}
+                </span>
+              </div>
+
+              {/* Prompt */}
+              <p className="text-xs mb-2" style={{ color: 'var(--clr-text-muted)' }}>Your prompt</p>
+              <p className="text-3xl font-black"
+                 style={{
+                   fontFamily: 'var(--font-heading)',
+                   background: role === 'liar'
+                     ? 'linear-gradient(135deg, var(--clr-accent), var(--clr-accent-glow))'
+                     : 'linear-gradient(135deg, var(--clr-success), var(--clr-primary-glow))',
+                   WebkitBackgroundClip: 'text',
+                   WebkitTextFillColor: 'transparent',
+                   backgroundClip: 'text',
+                 }}>
+                {prompt}
+              </p>
+
+              {role === 'liar' && (
+                <p className="text-xs mt-3" style={{ color: 'var(--clr-text-muted)' }}>
+                  Blend in! Others have a different word.
+                </p>
+              )}
+              {role === 'truth' && (
+                <p className="text-xs mt-3" style={{ color: 'var(--clr-text-muted)' }}>
+                  Discuss carefully — find the liar!
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Two-column layout: Players + Chat */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -128,11 +207,32 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
               ))}
             </ul>
 
+            {/* Start Game (host only, lobby only) */}
+            {isHost && !gameActive && (
+              <button
+                id="btn-start-game"
+                onClick={startGame}
+                className="w-full mt-4 px-4 py-2.5 rounded-xl font-semibold text-sm text-white
+                           transition-all duration-300 cursor-pointer
+                           hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
+                style={{ background: 'linear-gradient(135deg, var(--clr-primary), var(--clr-accent))' }}
+              >
+                🎮 Start Game
+              </button>
+            )}
+
+            {/* Waiting for host (non-host, lobby only) */}
+            {!isHost && !gameActive && (
+              <p className="text-xs text-center mt-4 py-2" style={{ color: 'var(--clr-text-muted)' }}>
+                Waiting for host to start...
+              </p>
+            )}
+
             {/* Leave Room */}
             <button
               onClick={onLeave}
-              className="w-full mt-4 px-4 py-2 rounded-xl font-medium text-xs transition-all duration-200
-                         hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              className={`w-full px-4 py-2 rounded-xl font-medium text-xs transition-all duration-200
+                         hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${gameActive || (!isHost) ? 'mt-4' : 'mt-2'}`}
               style={{
                 background: 'rgba(214, 48, 49, 0.1)',
                 border: '1px solid rgba(214, 48, 49, 0.25)',
