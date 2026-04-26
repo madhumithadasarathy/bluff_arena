@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Box, TextField, Button, Stack, Typography } from '@mui/material';
 import socket from '../socket';
 import Lobby from './Lobby';
 
@@ -125,88 +126,87 @@ export default function Home() {
         </p>
 
         {/* Room Controls */}
-        <div className="glass p-6 max-w-sm mx-auto text-left">
+        <Box className="glass p-6 max-w-sm mx-auto text-left" sx={{ borderRadius: 4 }}>
           {/* Username */}
-          <input
+          <TextField
             id="input-username"
-            type="text"
-            placeholder="Enter your name"
+            label="Enter your name"
+            variant="outlined"
+            fullWidth
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            maxLength={20}
-            className="w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all duration-200
-                       focus:ring-2 mb-4"
-            style={{
-              background: 'var(--clr-surface-light)',
-              border: '1px solid var(--clr-border)',
-              color: 'var(--clr-text)',
-              '--tw-ring-color': 'var(--clr-primary)',
-            }}
+            inputProps={{ maxLength: 20 }}
+            sx={{ mb: 2 }}
           />
 
           {/* Create Room */}
-          <button
+          <Button
             id="btn-create-room"
             onClick={createRoom}
             disabled={!isConnected}
-            className="w-full px-4 py-3 rounded-xl font-semibold text-white text-sm
-                       transition-all duration-300 cursor-pointer
-                       hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]
-                       disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
-            style={{ background: 'linear-gradient(135deg, var(--clr-primary), var(--clr-accent))' }}
+            variant="contained"
+            fullWidth
+            size="large"
+            sx={{
+              background: 'linear-gradient(135deg, var(--clr-primary), var(--clr-accent))',
+              color: 'white',
+              py: 1.5,
+              borderRadius: 3,
+              '&:hover': {
+                transform: 'scale(1.02)',
+                boxShadow: '0px 4px 20px rgba(212,175,55,0.4)',
+              }
+            }}
           >
             Create Room
-          </button>
+          </Button>
 
           {/* Divider */}
-          <div className="flex items-center gap-3 my-4">
-            <div className="flex-1 h-px" style={{ background: 'var(--clr-border)' }} />
-            <span className="text-xs font-medium" style={{ color: 'var(--clr-text-muted)' }}>or join</span>
-            <div className="flex-1 h-px" style={{ background: 'var(--clr-border)' }} />
-          </div>
+          <Box className="flex items-center gap-3 my-4">
+            <Box className="flex-1 h-px" sx={{ background: 'var(--clr-border)' }} />
+            <Typography variant="caption" sx={{ color: 'var(--clr-text-muted)' }}>or join</Typography>
+            <Box className="flex-1 h-px" sx={{ background: 'var(--clr-border)' }} />
+          </Box>
 
           {/* Join Room */}
-          <div className="flex gap-2">
-            <input
+          <Stack direction="row" spacing={1}>
+            <TextField
               id="input-room-code"
-              type="text"
-              placeholder="Room code"
+              label="Room code"
+              variant="outlined"
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              maxLength={5}
-              className="flex-1 px-4 py-3 rounded-xl text-sm font-mono font-bold tracking-[0.2em] uppercase outline-none
-                         transition-all duration-200 focus:ring-2"
-              style={{
-                background: 'var(--clr-surface-light)',
-                border: '1px solid var(--clr-border)',
-                color: 'var(--clr-text)',
-                '--tw-ring-color': 'var(--clr-primary)',
-              }}
+              inputProps={{ maxLength: 5, style: { textTransform: 'uppercase', letterSpacing: '0.2em', fontFamily: 'monospace', fontWeight: 'bold' } }}
+              sx={{ flex: 1 }}
             />
-            <button
+            <Button
               id="btn-join-room"
               onClick={joinRoom}
               disabled={!isConnected}
-              className="px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-200
-                         cursor-pointer hover:scale-105 active:scale-95
-                         disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
-              style={{
-                background: 'rgba(212, 175, 55, 0.15)',
-                border: '1px solid rgba(212, 175, 55, 0.3)',
-                color: 'var(--clr-primary)',
+              variant="outlined"
+              sx={{
+                px: 3,
+                borderRadius: 3,
+                borderColor: 'rgba(212, 175, 55, 0.3)',
+                color: 'primary.main',
+                background: 'rgba(212, 175, 55, 0.05)',
+                '&:hover': {
+                  background: 'rgba(212, 175, 55, 0.15)',
+                  transform: 'scale(1.05)',
+                }
               }}
             >
               Join
-            </button>
-          </div>
+            </Button>
+          </Stack>
 
           {/* Error */}
           {error && (
-            <p className="text-xs mt-3 px-1" style={{ color: '#ff7675' }}>
+            <Typography variant="caption" sx={{ color: '#ff7675', display: 'block', mt: 2, px: 1 }}>
               {error}
-            </p>
+            </Typography>
           )}
-        </div>
+        </Box>
 
         {/* Connection Status */}
         <div className="mt-8 glass inline-flex items-center gap-3 px-5 py-2.5">

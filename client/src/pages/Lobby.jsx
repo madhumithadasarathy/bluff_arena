@@ -3,6 +3,8 @@ import socket from '../socket';
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { sounds } from '../utils/soundManager';
+import { Box, Grid, Stack, TextField, Button, Typography, Paper } from '@mui/material';
+import InstructionsModal from './InstructionsModal';
 
 const getAvatarColor = (name) => {
   const colors = [
@@ -314,6 +316,7 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden py-8 px-4">
+      <InstructionsModal />
       
       {/* Mute Toggle */}
       <button 
@@ -570,59 +573,91 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
 
             {/* Start Game (host only, waiting or result phase) */}
             {isHost && (gamePhase === 'waiting' || gamePhase === 'result') && (
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+              <Button
+                variant="contained"
                 id="btn-start-game"
                 onClick={startGame}
-                className="w-full mt-4 px-4 py-2.5 rounded-xl font-semibold text-sm text-white shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-shadow hover:shadow-[0_0_25px_rgba(212,175,55,0.6)] cursor-pointer"
-                style={{ background: 'linear-gradient(135deg, var(--clr-primary), var(--clr-accent))' }}
+                fullWidth
+                sx={{
+                  mt: 2,
+                  py: 1.5,
+                  borderRadius: 3,
+                  fontWeight: 'bold',
+                  background: 'linear-gradient(135deg, var(--clr-primary), var(--clr-accent))',
+                  boxShadow: '0 0 15px rgba(212,175,55,0.4)',
+                  color: 'white',
+                  '&:hover': {
+                    transform: 'scale(1.02)',
+                    boxShadow: '0 0 25px rgba(212,175,55,0.6)',
+                  }
+                }}
               >
                 🎮 {gamePhase === 'result' ? 'Play Again' : 'Start Game'}
-              </motion.button>
+              </Button>
             )}
 
             {/* Start Voting (host only, playing phase) */}
             {isHost && gamePhase === 'playing' && (
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+              <Button
+                variant="contained"
                 id="btn-start-voting"
                 onClick={startVoting}
-                className="w-full mt-4 px-4 py-2.5 rounded-xl font-semibold text-sm text-white shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-shadow hover:shadow-[0_0_25px_rgba(212,175,55,0.6)] cursor-pointer"
-                style={{ background: 'linear-gradient(135deg, var(--clr-success), var(--clr-primary))' }}
+                fullWidth
+                sx={{
+                  mt: 2,
+                  py: 1.5,
+                  borderRadius: 3,
+                  fontWeight: 'bold',
+                  background: 'linear-gradient(135deg, var(--clr-success), var(--clr-primary))',
+                  boxShadow: '0 0 15px rgba(212,175,55,0.4)',
+                  color: 'white',
+                  '&:hover': {
+                    transform: 'scale(1.02)',
+                    boxShadow: '0 0 25px rgba(212,175,55,0.6)',
+                  }
+                }}
               >
                 🗳️ Start Voting
-              </motion.button>
+              </Button>
             )}
 
             {/* Error message */}
             {error && (
-              <p className="text-xs text-center mt-2 px-1" style={{ color: '#ff7675' }}>
+              <Typography variant="caption" align="center" sx={{ display: 'block', mt: 1, color: '#ff7675' }}>
                 {error}
-              </p>
+              </Typography>
             )}
 
             {/* Waiting for host (non-host, not playing/voting) */}
             {!isHost && (gamePhase === 'waiting' || gamePhase === 'result') && (
-              <p className="text-xs text-center mt-4 py-2" style={{ color: 'var(--clr-text-muted)' }}>
+              <Typography variant="caption" align="center" sx={{ display: 'block', mt: 2, color: 'var(--clr-text-muted)' }}>
                 Waiting for host to start...
-              </p>
+              </Typography>
             )}
 
             {/* Leave Room */}
-            <button
+            <Button
               onClick={onLeave}
-              className={`w-full px-4 py-2 rounded-xl font-medium text-xs transition-all duration-200
-                         hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${gamePhase !== 'waiting' || (!isHost) ? 'mt-4' : 'mt-2'}`}
-              style={{
-                background: 'rgba(139, 0, 0, 0.1)',
-                border: '1px solid rgba(139, 0, 0, 0.25)',
+              variant="outlined"
+              fullWidth
+              sx={{
+                mt: gamePhase !== 'waiting' || !isHost ? 2 : 1,
+                py: 1,
+                borderRadius: 3,
+                fontWeight: 'medium',
+                fontSize: '0.75rem',
                 color: '#ff7675',
+                borderColor: 'rgba(139, 0, 0, 0.25)',
+                background: 'rgba(139, 0, 0, 0.1)',
+                '&:hover': {
+                  background: 'rgba(139, 0, 0, 0.2)',
+                  borderColor: 'rgba(139, 0, 0, 0.4)',
+                  transform: 'scale(1.02)'
+                }
               }}
             >
               Leave Room
-            </button>
+            </Button>
           </div>
 
           {/* ── Chat Card (3 cols) ── */}
@@ -686,35 +721,50 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
             </div>
 
             {/* Input */}
-            <div className="flex gap-2">
-              <input
+            <Stack direction="row" spacing={1} sx={{ mt: 'auto' }}>
+              <TextField
                 id="input-chat"
-                type="text"
+                variant="outlined"
                 placeholder="Type a message..."
+                size="small"
+                fullWidth
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="flex-1 px-4 py-2.5 rounded-xl text-sm outline-none transition-all duration-200 focus:ring-2"
-                style={{
-                  background: 'var(--clr-surface-light)',
-                  border: '1px solid var(--clr-border)',
-                  color: 'var(--clr-text)',
-                  '--tw-ring-color': 'var(--clr-primary)',
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 3,
+                    background: 'var(--clr-surface-light)',
+                    color: 'white',
+                    '& fieldset': { borderColor: 'var(--clr-border)' },
+                    '&:hover fieldset': { borderColor: 'var(--clr-primary)' },
+                    '&.Mui-focused fieldset': { borderColor: 'var(--clr-primary)' }
+                  }
                 }}
               />
-              <motion.button
-                whileHover={draft.trim() ? { scale: 1.05 } : {}}
-                whileTap={draft.trim() ? { scale: 0.95 } : {}}
+              <Button
                 id="btn-send-chat"
+                variant="contained"
                 onClick={sendMessage}
                 disabled={!draft.trim()}
-                className="px-4 py-2.5 rounded-xl font-semibold text-sm text-white transition-all duration-200
-                           cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                style={{ background: 'linear-gradient(135deg, var(--clr-primary), var(--clr-accent))' }}
+                sx={{
+                  borderRadius: 3,
+                  px: 3,
+                  fontWeight: 'bold',
+                  background: 'linear-gradient(135deg, var(--clr-primary), var(--clr-accent))',
+                  color: 'white',
+                  '&:hover': {
+                    transform: 'scale(1.05)',
+                  },
+                  '&:disabled': {
+                    opacity: 0.3,
+                    color: 'white'
+                  }
+                }}
               >
                 Send
-              </motion.button>
-            </div>
+              </Button>
+            </Stack>
           </div>
         </div>
       </div>
