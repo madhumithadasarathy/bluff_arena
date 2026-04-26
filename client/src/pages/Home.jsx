@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Box, TextField, Button, Stack, Typography } from '@mui/material';
+import { motion } from 'framer-motion';
 import socket from '../socket';
 import Lobby from './Lobby';
+import InstructionsModal from '../components/InstructionsModal';
 
 export default function Home() {
   const [isConnected, setIsConnected] = useState(socket.connected);
+  const [view, setView] = useState('landing'); // 'landing' | 'home'
+  const [forceShowInstructions, setForceShowInstructions] = useState(false);
 
   // Room state
   const [username, setUsername] = useState('');
@@ -93,6 +97,77 @@ export default function Home() {
   // ── Lobby View ──
   if (roomId) {
     return <Lobby roomId={roomId} players={players} host={host} username={username} onLeave={leaveRoom} />;
+  }
+
+  // ── Landing View ──
+  if (view === 'landing') {
+    return (
+      <Box className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden" sx={{ background: 'var(--clr-background)' }}>
+        {/* Background Gradient Orbs */}
+        <Box className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full opacity-20 blur-[120px]"
+             sx={{ background: 'radial-gradient(circle, var(--clr-primary) 0%, transparent 70%)' }} />
+        <Box className="absolute bottom-[-20%] right-[-10%] w-[400px] h-[400px] rounded-full opacity-15 blur-[100px]"
+             sx={{ background: 'radial-gradient(circle, var(--clr-accent) 0%, transparent 70%)' }} />
+
+        {/* Decorative Cards */}
+        <Box className="absolute bottom-10 left-10 text-6xl opacity-10 animate-float" sx={{ animationDelay: '0s' }}>🂡</Box>
+        <Box className="absolute top-20 right-16 text-5xl opacity-10 animate-float" sx={{ animationDelay: '1.5s' }}>🂮</Box>
+        <Box className="absolute bottom-32 right-28 text-4xl opacity-10 animate-float" sx={{ animationDelay: '3s' }}>🃏</Box>
+
+        <Box className="relative z-10 text-center flex flex-col items-center">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
+            <Typography variant="h1" sx={{ fontSize: { xs: '4rem', md: '6rem' }, mb: 2, fontWeight: 900, fontFamily: 'var(--font-heading)', background: 'linear-gradient(135deg, #d4af37, #f8f5e4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.5))' }}>
+              🂡 Bluff Arena
+            </Typography>
+            <Typography variant="h5" sx={{ color: 'var(--clr-text-muted)', mb: 6, letterSpacing: '0.1em' }}>
+              Outsmart. Outplay. Outbluff.
+            </Typography>
+          </motion.div>
+
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button 
+                variant="contained" 
+                size="large"
+                onClick={() => setView('home')}
+                sx={{ 
+                  background: 'linear-gradient(135deg, var(--clr-primary), var(--clr-accent))', 
+                  color: 'white', 
+                  px: 5, py: 1.5, 
+                  fontSize: '1.2rem',
+                  boxShadow: '0 0 20px rgba(212,175,55,0.4)',
+                  borderRadius: 3
+                }}
+              >
+                Enter Game
+              </Button>
+            </motion.div>
+            
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button 
+                variant="outlined" 
+                size="large"
+                onClick={() => setForceShowInstructions(true)}
+                sx={{ 
+                  borderColor: 'rgba(212, 175, 55, 0.4)', 
+                  color: 'primary.main', 
+                  px: 5, py: 1.5, 
+                  fontSize: '1.2rem',
+                  borderRadius: 3,
+                  background: 'rgba(212, 175, 55, 0.05)'
+                }}
+              >
+                How to Play
+              </Button>
+            </motion.div>
+          </Stack>
+        </Box>
+        
+        {forceShowInstructions && (
+          <InstructionsModal forceOpen={true} onCloseExternal={() => setForceShowInstructions(false)} />
+        )}
+      </Box>
+    );
   }
 
   // ── Home View ──
