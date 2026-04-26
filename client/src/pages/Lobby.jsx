@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import socket from '../socket';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
 const getAvatarColor = (name) => {
@@ -15,6 +15,61 @@ const getAvatarColor = (name) => {
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
   return colors[Math.abs(hash) % colors.length];
 };
+
+function TiltCard({ children, isSelected, disabled, onClick, dimOthers }) {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+
+  const mouseXSpring = useSpring(x, { stiffness: 300, damping: 30 });
+  const mouseYSpring = useSpring(y, { stiffness: 300, damping: 30 });
+
+  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["12deg", "-12deg"]);
+  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-12deg", "12deg"]);
+
+  const handleMouseMove = (e) => {
+    if (disabled || isSelected) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const xPct = mouseX / width - 0.5;
+    const yPct = mouseY / height - 0.5;
+    x.set(xPct);
+    y.set(yPct);
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
+  return (
+    <motion.button
+      style={{
+        rotateX: disabled && !isSelected ? 0 : rotateX,
+        rotateY: disabled && !isSelected ? 0 : rotateY,
+        transformStyle: "preserve-3d",
+        background: isSelected ? 'rgba(212, 175, 55, 0.15)' : 'rgba(255, 255, 255, 0.02)',
+        borderColor: isSelected ? 'var(--clr-primary)' : 'rgba(212, 175, 55, 0.2)',
+      }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      onClick={onClick}
+      disabled={disabled}
+      whileTap={!disabled ? { scale: 0.95 } : {}}
+      className={`relative p-5 rounded-xl transition-all duration-300 border flex flex-col items-center justify-center
+        ${isSelected ? 'shadow-[0_8px_30px_rgba(212,175,55,0.4)] -translate-y-2' : ''}
+        ${dimOthers ? 'opacity-40 grayscale-[50%]' : 'opacity-100'}
+        ${disabled && !isSelected ? 'cursor-not-allowed opacity-40' : 'cursor-pointer hover:border-opacity-100 hover:shadow-[0_8px_20px_rgba(0,0,0,0.5)]'}
+      `}
+    >
+      <div style={{ transform: "translateZ(30px)" }}>
+        {children}
+      </div>
+    </motion.button>
+  );
+}
 
 export default function Lobby({ roomId, players, host, username, onLeave }) {
   const [messages, setMessages] = useState([]);
@@ -283,34 +338,25 @@ export default function Lobby({ roomId, players, host, username, onLeave }) {
                     : 'Cast your vote!'}
                 </p>
                 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-5" style={{ perspective: 1000 }}>
                   {players.map(p => {
                     const isSelf = p.id === socket.id;
                     const isSelected = votedFor === p.id;
+                    const hasVoted = votedFor !== null;
+                    const dimOthers = hasVoted && !isSelected;
+                    
                     return (
-                      <motion.button
-                        whileHover={!(isSelf || votedFor) ? { scale: 1.05 } : {}}
-                        whileTap={!(isSelf || votedFor) ? { scale: 0.95 } : {}}
+                      <TiltCard
                         key={p.id}
+                        isSelected={isSelected}
+                        disabled={isSelf || hasVoted}
                         onClick={() => submitVote(p.id)}
-                        disabled={isSelf || votedFor}
-                        className={`p-3 rounded-xl transition-colors duration-200 border
-                          ${isSelected ? 'shadow-lg' : ''}
-                          ${(isSelf || votedFor && !isSelected) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                        `}
-                        style={{
-                          background: isSelected 
-                            ? 'rgba(212, 175, 55, 0.2)' 
-                            : 'rgba(255, 255, 255, 0.03)',
-                          borderColor: isSelected 
-                            ? 'var(--clr-primary-glow)' 
-                            : 'rgba(255, 255, 255, 0.1)',
-                        }}
+                        dimOthers={dimOthers}
                       >
-                        <div className="font-semibold text-sm truncate">{p.username}</div>
-                        {isSelf && <div className="text-[10px]" style={{ color: 'var(--clr-text-muted)' }}>(You)</div>}
-                        {isSelected && <div className="text-[10px] mt-1 text-green-400 font-bold">VOTED</div>}
-                      </motion.button>
+                        <div className="font-semibold text-lg truncate drop-shadow-md">{p.username}</div>
+                        {isSelf && <div className="text-xs mt-1" style={{ color: 'var(--clr-text-muted)' }}>(You)</div>}
+                        {isSelected && <div className="text-xs mt-2 font-black tracking-widest drop-shadow-lg" style={{ color: 'var(--clr-primary)' }}>VOTED</div>}
+                      </TiltCard>
                     );
                   })}
                 </div>
